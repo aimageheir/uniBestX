@@ -55,6 +55,27 @@ describe('route query consistency', () => {
     expect(guard.mock.calls[1][0].query.get('id')).toBe('2');
   });
 
+  it('does not reuse a switchTab guard verdict when query delimiters collide', () => {
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    applyRouteFromUrl('/src/pages/index/index');
+
+    const guard = vi.fn((to: any, _from: any, next: any): void => {
+      if (to.query.get('next') == 'demo') {
+        next('/src/sub/auth/login');
+        return;
+      }
+      next();
+    });
+    registerBeforeEach(guard as any);
+
+    expect(switchTabInterceptor.invoke({ url: `${DETAIL_PATH}?id=${encodeURIComponent('1|next=demo')}` })).toBe(true);
+    expect(switchTabInterceptor.invoke({ url: `${DETAIL_PATH}?id=1&next=demo` })).toBe(false);
+
+    expect(guard).toHaveBeenCalledTimes(2);
+    expect(guard.mock.calls[1][0].query.get('next')).toBe('demo');
+  });
+
   it('does not restore a stale query on a query-less navigateTo', () => {
     const callback = getAppRouteCallback();
     applyRouteFromUrl('/src/pages/index/index');

@@ -123,10 +123,11 @@ function buildGuardTargetKey(target: string, api: string): string {
     }
   }
   const parts: Array<string> = [];
-  parts.push(normalizeGuardDedupeApi(api));
-  parts.push(cleanPath(urlObj.path));
+  // 每一段都先编码，避免 query 值里的 `|` / `=` 伪造出与多参数路由相同的去重键
+  parts.push(encodeURIComponent(normalizeGuardDedupeApi(api)));
+  parts.push(encodeURIComponent(cleanPath(urlObj.path)));
   targetQuery.forEach((value: string, key: string): void => {
-    parts.push(`${key}=${value}`);
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
   });
   return parts.join('|');
 }

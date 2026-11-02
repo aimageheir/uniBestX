@@ -5,6 +5,7 @@ import { switchTabbar } from '@/src/tabbar/core/navigate.uts';
 import type { TabNavigationContext, TabNavigationNext } from '@/src/tabbar/core/tab-navigation.uts';
 import { registerTabNavigationGuard } from '@/src/tabbar/core/tab-navigation.uts';
 import { isSinglePageTabbar, selectedTabbarStrategy, TABBAR_STRATEGY_MAP } from '@/src/tabbar/core/strategy.uts';
+import { router } from '@/src/router/index.uts';
 import { applyRouteFromUrl, routeState } from '@/uni_modules/route-bestX/index.uts';
 
 describe('switchTabbar', () => {
@@ -212,5 +213,27 @@ describe('switchTabbar', () => {
     expect(window.location.hash).toBe('#/src/pages/basic/basic?a=3');
     expect(routeState.fullPath).toBe('/src/pages/basic/basic?a=3');
     expect(routeState.query.get('ax') ?? null).toBeNull();
+  });
+
+  it('navigates mode-2 TabBar routes even though the router returns null', () => {
+    if (selectedTabbarStrategy != TABBAR_STRATEGY_MAP.CUSTOM_TABBAR_WITH_NATIVE) {
+      return;
+    }
+    const switchTab = (globalThis as any).uni.switchTab as ReturnType<typeof vi.fn>;
+    switchTab.mockClear();
+    applyRouteFromUrl('/src/pages/index/index');
+
+    const result = router.push({
+      path: '/src/pages/basic/basic',
+      query: { id: 1001, scene: 'mode-2' }
+    });
+
+    expect(result).toBeNull();
+    expect(switchTab).toHaveBeenCalledWith(expect.objectContaining({
+      url: '/src/pages/basic/basic?id=1001&scene=mode-2'
+    }));
+    expect(curIdx.value).toBe(1);
+    expect(routeState.fullPath).toBe('/src/pages/basic/basic?id=1001&scene=mode-2');
+    expect(routeState.query.get('id')).toBe('1001');
   });
 });
