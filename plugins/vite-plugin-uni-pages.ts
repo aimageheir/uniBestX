@@ -263,8 +263,8 @@ function matchGlob(filePath: string, pattern: string): boolean {
   return new RegExp(`^${regexStr}$`).test(filePath);
 }
 
-/** 递归扫描 .uvue 文件，支持 exclude 模式 */
-function scanUvueFiles(dir: string, excludes: string[] = [], projectRoot: string = ''): string[] {
+/** 扫描 .uvue 文件，支持 exclude 模式；recursive=false 时只收当前目录直属页面 */
+function scanUvueFiles(dir: string, excludes: string[] = [], projectRoot: string = '', recursive: boolean = true): string[] {
   const results: string[] = [];
   if (!fs.existsSync(dir)) {
     return results;
@@ -278,6 +278,9 @@ function scanUvueFiles(dir: string, excludes: string[] = [], projectRoot: string
     const fullPath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {
+      if (!recursive) {
+        continue;
+      }
       // 跳过默认的 components 和 views 目录
       if (entry.name === 'components' || entry.name === 'views') {
         continue;
@@ -1550,7 +1553,10 @@ export function mergePagesJson(
       const sub = newSubMap.get(existingSub.root);
       if (sub) {
         const root = existingSub.root;
-        const subMerged = mergePlatformItems(existingSub.pages, currentPlatform, sub.pages, 'path', sandboxActive, extraPlatforms, root, projectRoot).items;
+        // 父分包已被拆出一级子包时，旧父包里的子包页面必须让位给更具体的 root。
+        // 否则这些页面在磁盘上仍然存在，会被 mergePlatformItems 当成手写页面保留，形成重复登记。
+        const hasNestedSubPackages = output.subPackages.some(sp => sp.root.startsWith(`${existingSub.root}/`));
+        const subMerged = mergePlatformItems(existingSub.pages, currentPlatform, sub.pages, 'path', sandboxActive, extraPlatforms, root, projectRoot, hasNestedSubPackages).items;
         existingSub.pages = subMerged;
         mergedSubs.push(existingSub);
         newSubMap.delete(existingSub.root);
@@ -1961,6 +1967,7 @@ export async function buildPages(
   type SubPackageEntry = {
     rootDir: string;
     absDir: string;
+    directOnly: boolean;
   };
 
   const subEntries: SubPackageEntry[] = [];
@@ -1973,11 +1980,12 @@ export async function buildPages(
     }
 
     if (options.subPackageMode === 'root') {
-      subEntries.push({ rootDir: subDir, absDir: absSubDir });
+      subEntries.push({ rootDir: subDir, absDir: absSubDir, directOnly: false });
     }
     else {
       // subdirs 模式：扫描 absSubDir 下的一级子目录
       const items = fs.readdirSync(absSubDir, { withFileTypes: true });
+      const childEntries: SubPackageEntry[] = [];
       let hasDirectPages = false;
 
       // 排序以保证生成稳定
@@ -1990,9 +1998,10 @@ export async function buildPages(
             continue;
           }
           const childAbs = path.join(absSubDir, item.name);
-          subEntries.push({
+          childEntries.push({
             rootDir: `${subDir}/${item.name}`.replace(/\\/g, '/'),
-            absDir: childAbs
+            absDir: childAbs,
+            directOnly: false
           });
         }
         else if (item.isFile() && item.name.endsWith('.uvue')) {
@@ -2000,16 +2009,22 @@ export async function buildPages(
         }
       }
 
-      // 如果 subDir 根目录下直接有 .uvue 页面，也保留 subDir 自身作为独立分包
-      if (hasDirectPages || subEntries.length === 0) {
-        subEntries.push({ rootDir: subDir, absDir: absSubDir });
+      subEntries.push(...childEntries);
+
+      // 根目录直属页面登记到父分包；父分包必须只扫直属文件，否则会把已拆分的
+      // 一级子包页面再递归收一遍，形成同一路由的重复登记。
+      if (hasDirectPages) {
+        subEntries.push({ rootDir: subDir, absDir: absSubDir, directOnly: true });
+      }
+      else if (childEntries.length === 0) {
+        subEntries.push({ rootDir: subDir, absDir: absSubDir, directOnly: false });
       }
     }
   }
 
   for (let e = 0; e < subEntries.length; e++) {
     const entry = subEntries[e];
-    const subFiles = scanUvueFiles(entry.absDir, options.exclude, root);
+    const subFiles = scanUvueFiles(entry.absDir, options.exclude, root, !entry.directOnly);
     if (subFiles.length === 0) {
       continue;
     }
