@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/cq112233/unibestX">
+  <a href="https://github.com/aimageheir/uniBestX">
     <img width="140" src="static/logo-rounded.png" alt="unibestX logo">
   </a>
 </p>
@@ -12,20 +12,20 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/cq112233/unibestX/stargazers"><img src="https://img.shields.io/github/stars/cq112233/unibestX?style=flat-square" alt="Stars"></a>
-  <a href="https://github.com/cq112233/unibestX/network/members"><img src="https://img.shields.io/github/forks/cq112233/unibestX?style=flat-square" alt="Forks"></a>
-  <a href="https://github.com/cq112233/unibestX/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cq112233/unibestX?style=flat-square" alt="License"></a>
+  <a href="https://github.com/aimageheir/uniBestX/stargazers"><img src="https://img.shields.io/github/stars/aimageheir/uniBestX?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/aimageheir/uniBestX/network/members"><img src="https://img.shields.io/github/forks/aimageheir/uniBestX?style=flat-square" alt="Forks"></a>
+  <a href="https://github.com/aimageheir/uniBestX/blob/main/LICENSE"><img src="https://img.shields.io/github/license/aimageheir/uniBestX?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/Node.js-%3E%3D22.22.2-green?style=flat-square" alt="Node.js">
   <img src="https://img.shields.io/badge/pnpm-%3E%3D10.0.0-orange?style=flat-square" alt="pnpm">
   <img src="https://img.shields.io/badge/HBuilderX-%3E%3D5.26-blue?style=flat-square" alt="HBuilderX">
 </p>
 
 <p align="center">
-  <a href="https://cq112233.github.io/unibestX/">在线演示</a> ·
-  <a href="https://cq112233.github.io/unibestX/docs/">在线文档</a> ·
-  <a href="https://github.com/cq112233/unibestX">GitHub</a> ·
+  <a href="https://aimageheir.github.io/uniBestX/">在线演示</a> ·
+  <a href="https://aimageheir.github.io/uniBestX/docs/">在线文档</a> ·
+  <a href="https://github.com/aimageheir/uniBestX">GitHub</a> ·
   <a href="https://gitee.com/htwoO-cq/uni-best-x">Gitee</a> ·
-  <a href="https://github.com/cq112233/unibestX/issues">问题反馈</a>
+  <a href="https://github.com/aimageheir/uniBestX/issues">问题反馈</a>
 </p>
 
 ## 为什么要有这个项目？
@@ -80,14 +80,17 @@
 # 交互式脚手架（推荐）
 pnpm create unibestx my-app
 
+# GitHub 克隆
+git clone https://github.com/aimageheir/uniBestX.git my-app
+
 # Gitee 镜像克隆（国内推荐）
 git clone https://gitee.com/htwoO-cq/uni-best-x.git my-app
 
 # 无 UI 库基线
-npx degit cq112233/unibestX my-app
+npx degit aimageheir/uniBestX my-app
 
 # Rice UI 分支
-npx degit cq112233/unibestX#uniX-rice-ui my-app
+npx degit aimageheir/uniBestX#uniX-rice-ui my-app
 ```
 
 ### 安装与运行
@@ -98,21 +101,21 @@ pnpm install
 pnpm dev:web
 ```
 
-> App 与小程序编译依赖本机已启动的 HBuilderX。完整环境说明见[快速开始](https://cq112233.github.io/unibestX/docs/guide/getting-started)。
+> App 与小程序编译依赖本机已启动的 HBuilderX。完整环境说明见[快速开始](https://aimageheir.github.io/uniBestX/docs/guide/getting-started)。
 
 ## 文档
 
 | 文档 | 内容 |
 | :--- | :--- |
-| [介绍](https://cq112233.github.io/unibestX/docs/guide/introduction) | 技术栈、能力与分支说明 |
-| [快速开始](https://cq112233.github.io/unibestX/docs/guide/getting-started) | 创建项目、安装依赖与运行 |
-| [TabBar 专题](https://cq112233.github.io/unibestX/docs/guide/tabbar) | 模式、配置、UI 形态与 hooks |
-| [路由篇](https://cq112233.github.io/unibestX/docs/guide/route) | 路由跳转、参数读取、守卫与错误码 |
-| [请求篇](https://cq112233.github.io/unibestX/docs/guide/request) | 请求实例、异步 hooks、缓存、上传下载 |
-| [自动生成接口](https://cq112233.github.io/unibestX/docs/guide/api-generator) | Apifox / OpenAPI 生成 UTS 类型 |
-| [CLI 开发指南](https://cq112233.github.io/unibestX/docs/guide/cli) | 各平台运行与构建命令 |
+| [介绍](https://aimageheir.github.io/uniBestX/docs/guide/introduction) | 技术栈、能力与分支说明 |
+| [快速开始](https://aimageheir.github.io/uniBestX/docs/guide/getting-started) | 创建项目、安装依赖与运行 |
+| [TabBar 专题](https://aimageheir.github.io/uniBestX/docs/guide/tabbar) | 模式、配置、UI 形态与 hooks |
+| [路由篇](https://aimageheir.github.io/uniBestX/docs/guide/route) | 路由跳转、参数读取、守卫与错误码 |
+| [请求篇](https://aimageheir.github.io/uniBestX/docs/guide/request) | 请求实例、异步 hooks、缓存、上传下载 |
+| [自动生成接口](https://aimageheir.github.io/uniBestX/docs/guide/api-generator) | Apifox / OpenAPI 生成 UTS 类型 |
+| [CLI 开发指南](https://aimageheir.github.io/uniBestX/docs/guide/cli) | 各平台运行与构建命令 |
 
-完整目录见[在线文档](https://cq112233.github.io/unibestX/docs/)。
+完整目录见[在线文档](https://aimageheir.github.io/uniBestX/docs/)。
 
 ## 常用命令
 
