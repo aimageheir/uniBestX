@@ -20,7 +20,7 @@ function copyCliCommand(): void {
 }
 
 function openGithub(): void {
-  const url = 'https://github.com/cq112233/unibestX';
+  const url = 'https://github.com/aimageheir/uniBestX';
   // #ifdef WEB
   window.open(url, '_blank');
   // #endif

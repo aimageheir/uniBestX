@@ -61,7 +61,7 @@ themeStore.setThemeMode('dark'); // auto | light | dark
 
 - 不要在页面里写死全局背景色、导航栏色或 TabBar 色。
 - CSS 变量必须绑定在根容器内联 `:style` 上，原生端才会随 JS 变化重绘。
-- 详细令牌与 API 见 [src/theme/README.md](https://github.com/cq112233/unibestX/blob/main/src/theme/README.md)。
+- 详细令牌与 API 见 [src/theme/README.md](https://github.com/aimageheir/uniBestX/blob/main/src/theme/README.md)。
 
 ## Layout
 

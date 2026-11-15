@@ -1,6 +1,6 @@
 # 路由篇
 
-项目路由基于 [`route-bestX`](https://github.com/cq112233/unibestX/tree/main/uni_modules/route-bestX) 开发，`src/router` 负责业务层组装：初始化全局单例、注册登录与维护守卫、桥接 TabBar、加载构建期路由表。
+项目路由基于 [`route-bestX`](https://github.com/aimageheir/uniBestX/tree/main/uni_modules/route-bestX) 开发，`src/router` 负责业务层组装：初始化全局单例、注册登录与维护守卫、桥接 TabBar、加载构建期路由表。
 
 ```text
 页面 / 组件
@@ -345,4 +345,4 @@ router.afterEach((_to: RouteTarget, _from: RouteTarget, failure?: any | null): v
 - 业务守卫只在 `src/router/guards/index.uts` 编排。
 - 模式 4 Tab 切换使用 Tab 级守卫，不要桥接回全局路由。
 
-> 更完整的底层 API 见 [`route-bestX` 文档](https://github.com/cq112233/unibestX/tree/main/uni_modules/route-bestX) 与 [`src/router/README.md`](https://github.com/cq112233/unibestX/blob/main/src/router/README.md)。
+> 更完整的底层 API 见 [`route-bestX` 文档](https://github.com/aimageheir/uniBestX/tree/main/uni_modules/route-bestX) 与 [`src/router/README.md`](https://github.com/aimageheir/uniBestX/blob/main/src/router/README.md)。

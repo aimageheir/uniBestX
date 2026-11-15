@@ -1,6 +1,6 @@
 # 请求篇
 
-项目网络层基于 [`request-bestX`](https://github.com/cq112233/unibestX/tree/main/uni_modules/request-bestX) 开发，分为三层：
+项目网络层基于 [`request-bestX`](https://github.com/aimageheir/uniBestX/tree/main/uni_modules/request-bestX) 开发，分为三层：
 
 ```text
 页面 / 组件
@@ -555,4 +555,4 @@ git diff --check
 - 401、Token 和登录跳转没有在页面重复实现。
 - 涉及 App 原生网络行为时，额外完成 HBuilderX / 真机验证。
 
-> 完整底层 API 见 [`request-bestX` 文档](https://github.com/cq112233/unibestX/tree/main/uni_modules/request-bestX) 与 [`src/http/README.md`](https://github.com/cq112233/unibestX/blob/main/src/http/README.md)。
+> 完整底层 API 见 [`request-bestX` 文档](https://github.com/aimageheir/uniBestX/tree/main/uni_modules/request-bestX) 与 [`src/http/README.md`](https://github.com/aimageheir/uniBestX/blob/main/src/http/README.md)。

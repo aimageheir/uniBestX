@@ -11,7 +11,7 @@ UI 库替换优先通过**切换模板分支**完成，不建议在已有业务�
 5. 跑 `pnpm health`、`pnpm typecheck`、`pnpm lint` 和至少一个原生端编译。
 
 ```bash
-npx degit cq112233/unibestX#uniX-rice-ui my-app
+npx degit aimageheir/uniBestX#uniX-rice-ui my-app
 cd my-app
 pnpm install
 pnpm dev:web

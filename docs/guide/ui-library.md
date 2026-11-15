@@ -21,13 +21,13 @@
 
 ```bash
 # 纯净基线
-npx degit cq112233/unibestX my-app
+npx degit aimageheir/uniBestX my-app
 
 # Rice UI
-npx degit cq112233/unibestX#uniX-rice-ui my-app
+npx degit aimageheir/uniBestX#uniX-rice-ui my-app
 
 # uview-ultra
-npx degit cq112233/unibestX#uniX-uview-ultra my-app
+npx degit aimageheir/uniBestX#uniX-uview-ultra my-app
 ```
 
 也可以在 `create-unibestx` 交互式脚手架中直接选择 UI 方案。
