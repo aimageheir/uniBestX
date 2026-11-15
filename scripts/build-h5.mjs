@@ -145,17 +145,29 @@ if (hadPages) {
   fs.copyFileSync(pagesFile, backupFile);
 }
 
+let pagesRestored = false;
 function restorePages() {
-  if (hadPages) {
+  if (pagesRestored) {
+    return;
+  }
+  pagesRestored = true;
+
+  if (fs.existsSync(backupFile)) {
     fs.copyFileSync(backupFile, pagesFile);
     fs.rmSync(backupFile, { force: true });
   }
-  else {
+  else if (!hadPages && fs.existsSync(pagesFile)) {
     fs.rmSync(pagesFile, { force: true });
   }
 }
 
+let envRestored = false;
 function restoreEnv() {
+  if (envRestored) {
+    return;
+  }
+  envRestored = true;
+
   if (createdTempEnv && fs.existsSync(prodLocalFile)) {
     fs.rmSync(prodLocalFile, { force: true });
     console.log('🧹 已自动清理临时测试环境文件（.env.production.local），工作区已恢复默认');
@@ -163,8 +175,18 @@ function restoreEnv() {
 }
 
 function cleanup() {
-  restorePages();
-  restoreEnv();
+  try {
+    restorePages();
+  }
+  catch (err) {
+    console.error('⚠️ 恢复 pages.json 时出现异常:', err);
+  }
+  try {
+    restoreEnv();
+  }
+  catch (err) {
+    console.error('⚠️ 恢复环境变量时出现异常:', err);
+  }
 }
 
 // 监听中断信号，确保即使被中断也能清理干净
@@ -177,8 +199,8 @@ process.on('SIGTERM', () => {
   process.exit(143);
 });
 process.on('uncaughtException', (err) => {
-  cleanup();
   console.error('未捕获异常:', err);
+  cleanup();
   process.exit(1);
 });
 

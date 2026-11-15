@@ -17,7 +17,7 @@ definePage({
   }
 });
 
-const defaultUrl = 'https://github.com/cq112233/unibestX';
+const defaultUrl = 'https://github.com/aimageheir/uniBestX';
 const targetUrl = ref<string>(defaultUrl);
 
 onLoad((options: UTSJSONObject | null) => {

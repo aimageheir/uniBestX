@@ -4,7 +4,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'unibestX',
   description: '最好的 uni-app X 开发框架',
-  base: '/unibestX/docs/',
+  base: '/uniBestX/docs/',
   head: [
     ['link', { rel: 'icon', href: 'https://uniappx.oss-cn-beijing.aliyuncs.com/logo.png' }]
   ],
@@ -16,8 +16,8 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '文档', link: '/guide/introduction' },
-      { text: '在线演示', link: 'https://cq112233.github.io/unibestX/' },
-      { text: 'GitHub', link: 'https://github.com/cq112233/unibestX' }
+      { text: '在线演示', link: 'https://aimageheir.github.io/uniBestX/' },
+      { text: 'GitHub', link: 'https://github.com/aimageheir/uniBestX' }
     ],
 
     sidebar: [
@@ -59,7 +59,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/cq112233/unibestX' }
+      { icon: 'github', link: 'https://github.com/aimageheir/uniBestX' }
     ],
 
     footer: {

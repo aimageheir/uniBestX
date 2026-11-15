@@ -17,7 +17,7 @@ definePage({
 // ==================== 1. 通信与分享 ====================
 const phoneNumber = ref<string>('10086');
 const shareSummary = ref<string>('unibestX - 高性能跨端原生开发框架');
-const shareHref = ref<string>('https://github.com/cq112233/unibestX');
+const shareHref = ref<string>('https://github.com/aimageheir/uniBestX');
 
 function handleMakePhoneCall(): void {
   if (phoneNumber.value == '') {

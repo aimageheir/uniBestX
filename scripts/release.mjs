@@ -113,5 +113,5 @@ console.log('   2. CHANGELOG.md 变更日志已自动生成并追加');
 console.log('   3. Release 提交与 Git Tag 已创建并完成');
 console.log('\n🌐 持续集成与发布状态追踪：');
 console.log('   - 标签推送后，GitHub Actions 将全自动归档源码并发布 Release');
-console.log('   - 查看 Release 进度: https://github.com/cq112233/unibestX/actions/workflows/release.yml');
+console.log('   - 查看 Release 进度: https://github.com/aimageheir/uniBestX/actions/workflows/release.yml');
 console.log(`${divider}\n`);
