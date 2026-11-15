@@ -17,7 +17,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: 在线体验
-      link: https://cq112233.github.io/unibestX/
+      link: https://aimageheir.github.io/uniBestX/
 
 features:
   - title: 基于 UTS 的原生渲染

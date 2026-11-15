@@ -1060,4 +1060,4 @@ pnpm docs:build
 - [请求篇](/guide/request)：`useQuery`、`useMutation` 与接口层
 - [多语言篇](/guide/i18n)：语言包与运行时切换
 - [样式篇](/guide/style)：Tailwind CSS 与页面布局
-- [src/tabbar 源码说明](https://github.com/cq112233/unibestX/blob/main/src/tabbar/README.md)
+- [src/tabbar 源码说明](https://github.com/aimageheir/uniBestX/blob/main/src/tabbar/README.md)

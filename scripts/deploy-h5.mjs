@@ -186,6 +186,15 @@ try {
     }
   });
 
+  // 如果本地有全新构建的 VitePress 官网产物，优先采用最新产物覆盖 docs/
+  const localDocsDist = path.join(root, 'docs/.vitepress/dist');
+  if (fs.existsSync(localDocsDist)) {
+    const deployDocsDir = path.join(tempDeployDir, 'docs');
+    fs.mkdirSync(deployDocsDir, { recursive: true });
+    fs.cpSync(localDocsDist, deployDocsDir, { recursive: true, force: true });
+    console.log('📚 已将本地最新构建的 VitePress 官网（docs/）同步部署');
+  }
+
   // 写入 .nojekyll，防止 GitHub Pages 过滤带下划线的前端静态资源与 JSON
   fs.writeFileSync(path.join(tempDeployDir, '.nojekyll'), '');
 
@@ -248,9 +257,20 @@ try {
       throw new Error(`git push 失败，退出码: ${pushRes.status}`);
     }
 
+    let pagesUrl = 'https://aimageheir.github.io/uniBestX/';
+    try {
+      const getUrlRes = spawnSync('git', ['remote', 'get-url', remoteName], { cwd: root, encoding: 'utf8' });
+      const rawUrl = (getUrlRes.stdout || '').trim();
+      const match = rawUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)(?:\.git)?/i);
+      if (match) {
+        pagesUrl = `https://${match[1].toLowerCase()}.github.io/${match[2]}/`;
+      }
+    }
+    catch {}
+
     console.log('\n========================================================');
     console.log('🎉 H5 演示站已成功一键部署到 GitHub Pages！');
-    console.log(`🌐 访问地址: https://cq112233.github.io/unibestX/`);
+    console.log(`🌐 访问地址: ${pagesUrl}`);
     console.log('✨ 提示：main 分支保持 100% 纯净源码，未引入任何构建产物文件');
     console.log('========================================================\n');
   }

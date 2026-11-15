@@ -41,5 +41,5 @@ userStore.setUserInfo({
 - 条件编译的 export 不要被自动排序工具跨块移动。
 - 状态持久化只对需要跨启动保存的数据启用。
 
-> 完整目录、持久化和新增 store 模板见 [src/store/README.md](https://github.com/cq112233/unibestX/blob/main/src/store/README.md)。
+> 完整目录、持久化和新增 store 模板见 [src/store/README.md](https://github.com/aimageheir/uniBestX/blob/main/src/store/README.md)。
 

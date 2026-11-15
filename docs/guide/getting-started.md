@@ -59,26 +59,26 @@
 
   ```bash
   # 主分支（main，默认 Vapor 模式，全面兼通 VDOM & Vapor）
-  npx degit cq112233/unibestX my-project
+  npx degit aimageheir/uniBestX my-project
 
   # Rice UI 官方支持分支（强烈推荐，团队持续维护，支持 VDOM & Vapor 模式）
-  npx degit cq112233/unibestX#uniX-rice-ui my-project
+  npx degit aimageheir/uniBestX#uniX-rice-ui my-project
   ```
 
 * **方式三：通过 `git clone` 克隆**：
 
   ```bash
   # GitHub
-  git clone https://github.com/cq112233/unibestX.git
-  cd unibestX
+  git clone https://github.com/aimageheir/uniBestX.git
+  cd uniBestX
 
   # Gitee（国内加速推荐）
   git clone https://gitee.com/htwoO-cq/uni-best-x.git
   cd uni-best-x
 
   # 或克隆 Rice UI 官方支持分支（推荐）
-  git clone -b uniX-rice-ui https://github.com/cq112233/unibestX.git
-  cd unibestX
+  git clone -b uniX-rice-ui https://github.com/aimageheir/uniBestX.git
+  cd uniBestX
   ```
 
 ### 2. 安装依赖
