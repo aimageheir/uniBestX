@@ -247,7 +247,6 @@ import { renderKatex, KATEX_LINE_HEIGHT_RATIO } from '../../common/katex-lite/in
 import type { KatexLayout, KatexBox } from '../../common/katex-lite/index.uts'
 import { renderMermaid } from '../../common/mermaid-lite/index.uts'
 import type { MermaidLayout, MermaidShape } from '../../common/mermaid-lite/index.uts'
-import { openSchema, canOpenURL } from '@/uni_modules/uts-openSchema'
 
 type HtmlNode = {
   name?: string
@@ -1422,13 +1421,14 @@ function onLinkTap(n: HtmlNode): void {
 
   // 2. 外部网络链接（带协议）
   if (href.includes('://')) {
-    // 跨端优先使用原生 uts-openSchema 唤起系统默认浏览器 / 应用
-    if (canOpenURL(href)) {
-      openSchema(href)
+    // #ifdef WEB
+    try {
+      window.open(href, '_blank')
       return
-    }
+    } catch (_e) {}
+    // #endif
 
-    // 小程序端或不支持直接拉起时的保底：复制外链并提示
+    // 默认兜底：复制外链并提示
     uni.setClipboardData({
       data: href,
       success: () => {
