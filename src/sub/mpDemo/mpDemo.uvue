@@ -85,8 +85,24 @@ function onLinkTap(attrs: UTSJSONObject): void {
     return;
   }
 
-  // 2. 外部 HTTP/HTTPS 网络链接，在新页面打开（使用内置的 webview 页面）
+  // 2. 外部 HTTP/HTTPS 网络链接
   if (href.startsWith('http://') || href.startsWith('https://')) {
+    // 微信小程序等端：受平台沙箱限制，web-view 只能打开在后台校验过的「业务域名」。
+    // 未绑定的外部链接会被微信强行拦截致白屏，故统一走复制剪贴板兜底。
+    // if (isMp) {
+    //   uni.setClipboardData({
+    //     data: href,
+    //     success: () => {
+    //       uni.showToast({
+    //         title: '链接已复制，请在浏览器中打开',
+    //         icon: 'none'
+    //       });
+    //     }
+    //   });
+    //   return;
+    // }
+
+    // App 端与 Web 端：跳转应用内专属 Webview 页面浏览
     uni.navigateTo({
       url: `/src/sub/webview/webview?url=${encodeURIComponent(href)}&title=${encodeURIComponent('住院须知详情')}`
     });
