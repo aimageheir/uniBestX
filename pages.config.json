@@ -446,6 +446,30 @@
       ]
     },
     {
+      "root": "src/sub/mpDemo",
+      "pages": [
+        {
+          "path": "mpDemo",
+          "customPageClass": ".root-page",
+          "customPageStyle": "background-color: transparent;",
+          "layout": "navbar",
+          "showBack": true,
+          "hideNavbar": false,
+          "enablePullDownRefresh": false,
+          "style": {
+            "navigationBarBackgroundColor": "#ffffff",
+            "navigationBarTitleText": "MpHtml",
+            "navigationStyle": "custom",
+            "mp-alipay": {
+              "transparentTitle": "always",
+              "titlePenetrate": "YES",
+              "defaultTitle": ""
+            }
+          }
+        }
+      ]
+    },
+    {
       "root": "src/sub/nestedScrollFunctionDemo",
       "pages": [
         {

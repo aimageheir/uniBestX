@@ -1,0 +1,7 @@
+import type { CanOpenURL, OpenSchema } from '../interface.uts';
+
+export const openSchema: OpenSchema = function (_url: string): void {};
+
+export const canOpenURL: CanOpenURL = function (_url: string): boolean {
+  return false;
+};

@@ -89,6 +89,13 @@ type FunctionDemoItem = {
 
 const demoList: Array<FunctionDemoItem> = [
   {
+    id: 'mpHtml',
+    title: 'mp-html 富文本渲染',
+    desc: '轻量高效富文本组件，支持 HTML 标签解析、图文混排、行内样式与复杂排版。',
+    btnText: '进入 mp-html 富文本功能',
+    path: '/src/sub/mpDemo/mpDemo'
+  },
+  {
     id: 'zpaging',
     title: 'z-paging-x 原生分页',
     desc: '演示 120Hz 极速列表、原生阻尼下拉刷新与高性能复用加载。',
