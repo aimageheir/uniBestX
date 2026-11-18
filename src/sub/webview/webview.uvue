@@ -6,14 +6,14 @@ const router = useRouter();
 
 definePage({
   debug: false,
-  layout: 'navbar',
+  layout: 'default',
   showBack: true,
   enablePullDownRefresh: false,
-  hideNavbar: false,
+  hideNavbar: true,
   hideStatusBar: false,
   style: {
     navigationBarTitleText: '浏览网页',
-    navigationStyle: 'custom'
+    navigationStyle: 'default'
   }
 });
 

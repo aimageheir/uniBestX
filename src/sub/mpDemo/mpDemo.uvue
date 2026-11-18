@@ -1,0 +1,132 @@
+<script lang="uts" setup>
+import MpHtml from '@/uni_modules/mp-html/components/mp-html/mp-html.uvue';
+
+definePage({
+  customPageClass: '.root-page', // 页面根容器自定义类名（配合 layout 布局使用，支持配置全局样式类）
+  customPageStyle: 'background-color: transparent;', // 页面根容器自定义行内样式（穿透任何样式隔离，全端绝对生效）
+  debug: false, // 是否开启当前页面沙盒独立调试（设为 true 可单独调试此页；⚠️ 调试完成后改回 false）
+  debugHome: false, // 沙盒调试模式下是否将当前页面指定为启动首页（全局仅允许 1 个页面设为 true，排在 pages[0]）
+  layout: 'navbar', // 页面通用布局模板（采用 navbar 布局接管顶部导航与下拉滚动容器）
+  showBack: true, // 导航栏左侧是否显示返回箭头（TabBar 首页无需返回按钮）
+  hideNavbar: false, // 是否隐藏顶部导航栏（false 为正常显示）
+  enablePullDownRefresh: false, // 是否开启自定义下拉刷新（由 navbar 布局内的 scroll-view 驱动）
+  style: {
+    navigationBarBackgroundColor: '#ffffff', // 导航栏背景颜色（十六进制颜色值）
+    navigationBarTitleText: 'MpHtml', // 页面与导航栏标题文本
+    navigationStyle: 'custom' // 导航栏样式设为自定义（隐藏系统原生导航栏）
+  }
+});
+
+const dataInfo = ref<UTSJSONObject>({});
+
+const tagStyle: UTSJSONObject = {
+  table: 'box-sizing: border-box; border-top: 1px solid #dfe2e5; border-left: 1px solid #dfe2e5;',
+  th: 'border-right: 1px solid #dfe2e5; border-bottom: 1px solid #dfe2e5;',
+  td: 'border-right: 1px solid #dfe2e5; border-bottom: 1px solid #dfe2e5;',
+  li: 'margin: 5px 0;',
+  div: 'color:red;'
+};
+const html: string = `
+<h2 style="font-size: 18px; font-weight: bold; color: #006194; margin-bottom: 12px;">住院须知</h2>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  欢迎您入住本院。为了您能有一个安静、舒适、安全的治疗环境，请您和您的亲友配合我们做好以下工作：
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  1. 住院期间请遵守医院的作息时间，保持病室安静，<strong style="color: #E54D42;">请勿大声喧哗</strong>。
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  2. 为了您的安全，请勿在病室内使用<em style="color: #d97706;">电饭煲、电热壶</em>等大功率电器。
+</p>
+<ul style="padding-left: 20px; margin-bottom: 10px;">
+  <li style="font-size: 14px; color: #333333; line-height: 1.8;">请妥善保管好您的贵重物品。</li>
+  <li style="font-size: 14px; color: #333333; line-height: 1.8;">住院期间请穿防滑鞋，防止跌倒。</li>
+  <li style="font-size: 14px; color: #333333; line-height: 1.8;">如有不适，请及时按呼叫铃通知医护人员。</li>
+</ul>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  3. 探视时间为每日 <strong>15:00 - 20:00</strong>，每次探视不超过 2 人，请勿携带儿童进入病区。
+</p>
+<img src="https://fanyun-fima.oss-cn-hangzhou.aliyuncs.com/jeditor/a52a67690f2c42f7a33325abd4e34225_1793805190203.jpg" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;" />
+<p style="font-size: 13px; color: #999999; line-height: 1.6; margin-bottom: 10px;">
+  如需了解更多住院信息，请点击 <a href="https://example.com/notice" style="color: #006194; text-decoration: underline;">住院须知详情</a>。
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  4. 出院结算请携带押金单、医保卡到一楼住院结算窗口办理。
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  5. 医院食堂位于住院部一楼，提供早、中、晚三餐，也可通过床头呼叫器订餐。
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  6. 病区设有开水间，请小心烫伤。热水供应时间为每日 6:00 - 22:00。
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  7. 请保持病室整洁，垃圾请放入指定垃圾桶，不要随地吐痰。
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  8. 住院期间如需请假外出，请向主管医生提出申请，经批准后方可离开。
+</p>
+<p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
+  感谢您的理解与配合，祝您早日康复！
+</p>
+`;
+
+function onLinkTap(attrs: UTSJSONObject): void {
+  // 标记接管跳转，阻止 mp-html 内部继续执行默认兜底逻辑
+  attrs.set('ignore', true);
+
+  const href = attrs.getString('href') ?? '';
+  if (href.length == 0)
+    return;
+
+  // 1. 应用内相对路径直接跳转
+  if (href.startsWith('/')) {
+    uni.navigateTo({
+      url: href
+    });
+    return;
+  }
+
+  // 2. 外部 HTTP/HTTPS 网络链接
+  if (href.startsWith('http://') || href.startsWith('https://')) {
+    // 微信小程序等端：受平台沙箱限制，web-view 只能打开在后台校验过的「业务域名」。
+    // 未绑定的外部链接会被微信强行拦截致白屏，故统一走复制剪贴板兜底。
+    // if (isMp) {
+    //   uni.setClipboardData({
+    //     data: href,
+    //     success: () => {
+    //       uni.showToast({
+    //         title: '链接已复制，请在浏览器中打开',
+    //         icon: 'none'
+    //       });
+    //     }
+    //   });
+    //   return;
+    // }
+
+    // App 端与 Web 端：跳转应用内专属 Webview 页面浏览
+    uni.navigateTo({
+      url: `/src/sub/webview/webview?url=${encodeURIComponent(href)}&title=${encodeURIComponent('住院须知详情')}`
+    });
+  }
+}
+</script>
+
+<template>
+  <view class="flex flex-col flex-1 pb-safe">
+    <scroll-view direction="vertical" class="w-full flex flex-col flex-1">
+      <!-- <MpHtml :content="dataInfo.routeDescription" :tag-style="tagStyle" :selectable="true" :show-img-menu="true" /> -->
+      <MpHtml :content="html" :tag-style="tagStyle" :selectable="true" :show-img-menu="true" @linktap="onLinkTap" />
+      <!-- <rich-text :nodes="dataInfo.routeDescription" class="pd-rich"></rich-text> -->
+
+      <!-- 占位 -->
+      <view class="w-full h-4"></view>
+    </scroll-view>
+  </view>
+</template>
+
+<style lang="scss" scoped>
+.pd-rich {
+  color: #333333;
+  font-size: 16px;
+  line-height: 1.7;
+}
+</style>

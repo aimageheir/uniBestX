@@ -446,6 +446,30 @@
       ]
     },
     {
+      "root": "src/sub/mpDemo",
+      "pages": [
+        {
+          "path": "mpDemo",
+          "customPageClass": ".root-page",
+          "customPageStyle": "background-color: transparent;",
+          "layout": "navbar",
+          "showBack": true,
+          "hideNavbar": false,
+          "enablePullDownRefresh": false,
+          "style": {
+            "navigationBarBackgroundColor": "#ffffff",
+            "navigationBarTitleText": "MpHtml",
+            "navigationStyle": "custom",
+            "mp-alipay": {
+              "transparentTitle": "always",
+              "titlePenetrate": "YES",
+              "defaultTitle": ""
+            }
+          }
+        }
+      ]
+    },
+    {
       "root": "src/sub/nestedScrollFunctionDemo",
       "pages": [
         {
@@ -1471,19 +1495,14 @@
       "pages": [
         {
           "path": "webview",
-          "layout": "navbar",
+          "layout": "default",
           "showBack": true,
           "enablePullDownRefresh": false,
-          "hideNavbar": false,
+          "hideNavbar": true,
           "hideStatusBar": false,
           "style": {
             "navigationBarTitleText": "浏览网页",
-            "navigationStyle": "custom",
-            "mp-alipay": {
-              "transparentTitle": "always",
-              "titlePenetrate": "YES",
-              "defaultTitle": ""
-            }
+            "navigationStyle": "default"
           }
         }
       ]

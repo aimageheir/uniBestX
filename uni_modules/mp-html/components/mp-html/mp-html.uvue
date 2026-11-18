@@ -57,14 +57,14 @@
     -->
     <!-- 渲染节点树 -->
     <template v-for="(n, i) in localNodes" :key="i">
-      <text v-if="n.type == 'text'">{{ n.text }}</text>
+      <text v-if="n.type == 'text'" :class="'_mp_inline ' + nodeClass(n)" :style="nodeStyle(n)">{{ n.text }}</text>
       <!-- br 必须用插值写：模板文本节点里的 `\n` 会被当成两个字面字符原样显示。
            flatText 里那条 br → '\n' 是真正的 JS 转义，所以块级分支里的换行本来是好的，
            只有「行内兄弟节点」这条路径需要修。 -->
       <text v-else-if="n.name == 'br'">{{ '\n' }}</text>
-      <image v-else-if="n.name == 'img' && imgSrc(n) != ''" :src="imgSrc(n)" style="max-width:240px;border-radius:8px" mode="widthFix" @tap="onImgTap(n)" />
-      <text v-else-if="n.name == 'a'" class="mp-a" @tap="onLinkTap(n)">{{ flatText(n) }}</text>
-      <text v-else-if="isInline(n.name ?? '')" :class="chainClass(n)" :style="inlineStyle(n)">{{ flatText(n) }}</text>
+      <image v-else-if="n.name == 'img' && imgSrc(n) != ''" :src="imgSrc(n)" :style="imgStyle(n)" mode="widthFix" @tap="onImgTap(n)" />
+      <text v-else-if="n.name == 'a'" class="_mp_inline mp-a" :style="linkStyle(n)" @tap="onLinkTap(n)">{{ flatText(n) }}</text>
+      <text v-else-if="isInline(n.name ?? '')" :class="'_mp_inline ' + chainClass(n)" :style="inlineStyle(n)">{{ flatText(n) }}</text>
       <!-- KaTeX 数学公式原生渲染 -->
       <view v-else-if="n.name == 'katex'" style="display:flex;flex-direction:row;justify-content:center;margin:12px 0;width:100%">
         <view :style="getOrComputeFormulaLayout(n).rootStyle">
@@ -81,18 +81,18 @@
         </view>
         <text style="font-size:10px;color:#94a3b8;margin-top:6px">Mermaid 原生排版 · 点击放大查看</text>
       </view>
-      <text v-else-if="n.name == 'h1' || n.name == 'h2' || n.name == 'h3' || n.name == 'h4' || n.name == 'h5' || n.name == 'h6'" class="mp-b" :style="headingStyle(n.name ?? '')">{{ flatText(n) }}</text>
+      <text v-else-if="n.name == 'h1' || n.name == 'h2' || n.name == 'h3' || n.name == 'h4' || n.name == 'h5' || n.name == 'h6'" class="mp-b" :style="headingNodeStyle(n)">{{ flatText(n) }}</text>
       <!-- 代码块：语法高亮后逐行渲染。
            外层 view 承担底色/圆角/内边距（<text> 上不适合挂这些），
            一行代码 = 一个 flex 行，行内各着色片段是「同级兄弟 <text>」——
            不能写成嵌套 <text>，原生端一个 text 只能有一个文本节点（见 unibestX-skill 2.4）。
            行内 code 走 isInline 分支，不在这里。 -->
-      <view v-else-if="n.name == 'pre'" style="display:flex;flex-direction:column;background-color:#f8fafc;border-radius:6px;padding:8px 10px;border-width:1px;border-color:#e2e8f0;border-style:solid">
+      <view v-else-if="n.name == 'pre'" style="display:flex;flex-direction:column;width:100%;box-sizing:border-box;background-color:#f8fafc;border-radius:6px;padding:8px 10px;border-width:1px;border-color:#e2e8f0;border-style:solid">
         <view v-for="(line, li) in codeLines(n)" :key="li" style="display:flex;flex-direction:row;flex-wrap:wrap">
           <text v-for="(seg, si) in line" :key="si" :style="'font-family:monospace;white-space:pre;font-size:12px;' + seg.style">{{ seg.text }}</text>
         </view>
       </view>
-      <view v-else-if="n.name == 'hr'" style="height:1px;background-color:#e0e0e0;margin:10px 0" />
+      <view v-else-if="n.name == 'hr'" style="height:1px;background-color:#e0e0e0;margin:10px 0;width:100%" />
       <!-- 视频：uni-app X 的 <video> 组件（安卓 3.9+ / iOS 4.11+ / Web 4.0）。
            只在 src 看起来完整时才渲染，半截 URL 交给它只会得到一个报错的黑色方块，见 videoSrc。
            poster 没接：官方文档说它要「图片网络资源地址」，本地 /static 路径在 App 端不一定生效。 -->
@@ -108,19 +108,21 @@
         </view>
       </view>
       <!-- 列表：支持列表项内的加粗、代码、斜体、删除线与行内文字颜色 -->
-      <view v-else-if="n.name == 'ul' || n.name == 'ol'" style="display:flex;flex-direction:column;padding-left:14px;margin:6px 0">
-        <view v-for="(li, lii) in (n.children ?? [])" :key="lii" style="display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;margin:2px 0">
-          <text style="color:#64748b;margin-right:6px">{{ n.name == 'ol' ? (lii + 1).toString() + '. ' : '• ' }}</text>
+      <view v-else-if="n.name == 'ul' || n.name == 'ol'" style="display:flex;flex-direction:column;width:100%;box-sizing:border-box;padding-left:14px;margin:6px 0">
+        <view v-for="(li, lii) in (n.children ?? [])" :key="lii" style="display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;margin:4px 0">
+          <text style="color:#333333;margin-right:6px;font-size:14px;line-height:22px">{{ n.name == 'ol' ? (lii + 1).toString() + '. ' : '• ' }}</text>
           <template v-for="(lcn, lci) in (li.children ?? [])" :key="lci">
-            <text v-if="lcn.type == 'text'">{{ lcn.text }}</text>
+            <text v-if="lcn.type == 'text'" :class="nodeClass(lcn)" :style="nodeStyle(lcn)">{{ lcn.text }}</text>
             <text v-else-if="lcn.name == 'br'">{{ '\n' }}</text>
-            <text v-else-if="lcn.name == 'a'" class="mp-a" @tap="onLinkTap(lcn)">{{ flatText(lcn) }}</text>
+            <image v-else-if="lcn.name == 'img' && imgSrc(lcn) != ''" :src="imgSrc(lcn)" :style="imgStyle(lcn)" mode="widthFix" @tap="onImgTap(lcn)" />
+            <text v-else-if="lcn.name == 'a'" class="mp-a" :style="linkStyle(lcn)" @tap="onLinkTap(lcn)">{{ flatText(lcn) }}</text>
             <text v-else-if="isInline(lcn.name ?? '')" :class="chainClass(lcn)" :style="inlineStyle(lcn)">{{ flatText(lcn) }}</text>
             <template v-else-if="lcn.name == 'div' || lcn.name == 'p'">
               <template v-for="(sub, subi) in (lcn.children ?? [])" :key="subi">
-                <text v-if="sub.type == 'text'">{{ sub.text }}</text>
+                <text v-if="sub.type == 'text'" :class="nodeClass(sub)" :style="nodeStyle(sub)">{{ sub.text }}</text>
                 <text v-else-if="sub.name == 'br'">{{ '\n' }}</text>
-                <text v-else-if="sub.name == 'a'" class="mp-a" @tap="onLinkTap(sub)">{{ flatText(sub) }}</text>
+                <image v-else-if="sub.name == 'img' && imgSrc(sub) != ''" :src="imgSrc(sub)" :style="imgStyle(sub)" mode="widthFix" @tap="onImgTap(sub)" />
+                <text v-else-if="sub.name == 'a'" class="mp-a" :style="linkStyle(sub)" @tap="onLinkTap(sub)">{{ flatText(sub) }}</text>
                 <text v-else-if="isInline(sub.name ?? '')" :class="chainClass(sub)" :style="inlineStyle(sub)">{{ flatText(sub) }}</text>
                 <text v-else>{{ flatText(sub) }}</text>
               </template>
@@ -129,13 +131,14 @@
           </template>
         </view>
       </view>
-      <!-- 块级容器 -->
-      <view v-else>
+      <!-- 块级容器：Web 端块级内联流式折行，原生端 Flex wrap 换行（见 unibestX-skill 2.17） -->
+      <view v-else-if="(n.children ?? []).length > 0" class="_mp_block">
         <template v-for="(cn, ci) in (n.children ?? [])" :key="ci">
-          <text v-if="cn.type == 'text'">{{ cn.text }}</text>
+          <text v-if="cn.type == 'text'" :class="'_mp_inline ' + nodeClass(cn)" :style="nodeStyle(cn)">{{ cn.text }}</text>
           <text v-else-if="cn.name == 'br'">{{ '\n' }}</text>
-          <image v-else-if="cn.name == 'img' && imgSrc(cn) != ''" :src="imgSrc(cn)" style="max-width:240px;border-radius:8px" mode="widthFix" @tap="onImgTap(cn)" />
-          <text v-else-if="cn.name == 'a'" class="mp-a" @tap="onLinkTap(cn)">{{ flatText(cn) }}</text>
+          <image v-else-if="cn.name == 'img' && imgSrc(cn) != ''" :src="imgSrc(cn)" :style="imgStyle(cn)" mode="widthFix" @tap="onImgTap(cn)" />
+          <text v-else-if="cn.name == 'a'" class="_mp_inline mp-a" :style="linkStyle(cn)" @tap="onLinkTap(cn)">{{ flatText(cn) }}</text>
+          <text v-else-if="isHeading(cn.name ?? '')" class="_mp_block mp-b" :style="headingNodeStyle(cn)">{{ flatText(cn) }}</text>
           <!-- 嵌套 KaTeX 公式与 Mermaid 流程图 -->
           <view v-else-if="cn.name == 'katex'" style="display:flex;flex-direction:row;justify-content:center;margin:12px 0;width:100%">
             <view :style="getOrComputeFormulaLayout(cn).rootStyle">
@@ -158,8 +161,19 @@
           <view v-else-if="cn.name == 'video' && videoSrc(cn) != ''" style="display:flex;flex-direction:column;width:100%">
             <video :src="videoSrc(cn)" :controls="true" style="width:100%;height:180px;border-radius:8px" />
           </view>
-          <text v-else-if="isInline(cn.name ?? '')" :class="chainClass(cn)" :style="inlineStyle(cn)">{{ flatText(cn) }}</text>
-          <text v-else>{{ flatText(cn) }}</text>
+          <!-- 嵌套块级容器（如 p, div 等）：独占一行并支持行内混排 -->
+          <view v-else-if="cn.name == 'div'" class="_mp_block">
+            <template v-for="(sub, subi) in (cn.children ?? [])" :key="subi">
+              <text v-if="sub.type == 'text'" :class="'_mp_inline ' + nodeClass(sub)" :style="nodeStyle(sub)">{{ sub.text }}</text>
+              <text v-else-if="sub.name == 'br'">{{ '\n' }}</text>
+              <image v-else-if="sub.name == 'img' && imgSrc(sub) != ''" :src="imgSrc(sub)" :style="imgStyle(sub)" mode="widthFix" @tap="onImgTap(sub)" />
+              <text v-else-if="sub.name == 'a'" class="_mp_inline mp-a" :style="linkStyle(sub)" @tap="onLinkTap(sub)">{{ flatText(sub) }}</text>
+              <text v-else-if="isInline(sub.name ?? '')" :class="'_mp_inline ' + chainClass(sub)" :style="inlineStyle(sub)">{{ flatText(sub) }}</text>
+              <text v-else class="_mp_inline">{{ flatText(sub) }}</text>
+            </template>
+          </view>
+          <text v-else-if="isInline(cn.name ?? '')" :class="'_mp_inline ' + chainClass(cn)" :style="inlineStyle(cn)">{{ flatText(cn) }}</text>
+          <text v-else class="_mp_inline">{{ flatText(cn) }}</text>
         </template>
       </view>
     </template>
@@ -487,6 +501,21 @@ function decodeEntities(s: string): string {
 function cleanText(s: string): string {
   // 先解实体再压空白：`&nbsp;` 解出的是 U+00A0，不在下面的压空白字符集里，因此不会被压掉
   const src = decodeEntities(s)
+  let hasSpace = false
+  let hasNonSpace = false
+  for (let i = 0; i < src.length; i++) {
+    const c = src.charAt(i)
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+      hasSpace = true
+    } else {
+      hasNonSpace = true
+      break
+    }
+  }
+  if (!hasNonSpace) {
+    return hasSpace ? ' ' : ''
+  }
+
   let r = ''
   let lastSpace = false
   for (let i = 0; i < src.length; i++) {
@@ -671,7 +700,241 @@ function imgSrc(n: HtmlNode): string {
     if (lower.length >= e.length && lower.substring(lower.length - e.length) == e) return raw
     if (lower.indexOf(e + '?') >= 0 || lower.indexOf(e + '&') >= 0) return raw
   }
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw
   return ''
+}
+
+function nodeClass(n: HtmlNode): string {
+  const attrs = n.attrs
+  if (attrs == null) return ''
+  return attrs.getString('class') ?? ''
+}
+
+function nodeStyle(n: HtmlNode): string {
+  const attrs = n.attrs
+  if (attrs == null) return ''
+  const c = attrs.getString('_color')
+  if (c != null && c.length > 0) {
+    return 'color:' + c
+  }
+  return ''
+}
+
+function imgStyle(n: HtmlNode): string {
+  let s = 'width:100%;border-radius:8px;margin:8px 0;'
+  const attrs = n.attrs
+  if (attrs != null) {
+    const rawStyle = attrs.getString('style')
+    if (rawStyle != null && rawStyle.length > 0) {
+      s += rawStyle
+    }
+  }
+  return s
+}
+
+function isBlockTag(tag: string): boolean {
+  const t = tag.toLowerCase()
+  return t == 'div' || t == 'p' || t == 'section' || t == 'blockquote'
+    || t == 'ul' || t == 'ol' || t == 'li' || t == 'table' || t == 'pre'
+    || t == 'hr' || t == 'video' || t == 'katex' || t == 'mermaid'
+    || isHeading(t)
+}
+
+function isParagraphContainer(tag: string): boolean {
+  const t = tag.toLowerCase()
+  return t == 'div' || t == 'p' || t == 'section' || t == 'blockquote' || t == 'article'
+}
+
+function linkStyle(n: HtmlNode): string {
+  let s: string = 'text-decoration-line:underline'
+  const attrs = n.attrs
+  if (attrs != null) {
+    const c = attrs.getString('_color')
+    if (c != null && c.length > 0) {
+      s += ';color:' + c
+    }
+  }
+  return s
+}
+
+function pushTextLeaf(text: string, cls: string, color: string, out: HtmlNode[]): void {
+  if (text.length == 0) return
+  if (out.length > 0) {
+    const last = out[out.length - 1]
+    if (last.type == 'text') {
+      const lastAttrs = last.attrs
+      const lastCls: string = lastAttrs != null ? (lastAttrs.getString('class') ?? '') : ''
+      const lastColor: string = lastAttrs != null ? (lastAttrs.getString('_color') ?? '') : ''
+      if (lastCls == cls && lastColor == color) {
+        last.text = (last.text ?? '') + text
+        return
+      }
+    }
+  }
+  const leafAttrs: UTSJSONObject = {} as UTSJSONObject
+  if (cls.length > 0) leafAttrs['class'] = cls
+  if (color.length > 0) leafAttrs['_color'] = color
+  out.push({
+    type: 'text',
+    text: text,
+    attrs: leafAttrs
+  } as HtmlNode)
+}
+
+function flattenInline(node: HtmlNode, inheritedClass: string, inheritedColor: string, out: HtmlNode[]): void {
+  if (node.type == 'text') {
+    const text: string = node.text ?? ''
+    pushTextLeaf(text, inheritedClass, inheritedColor, out)
+    return
+  }
+
+  const name: string = (node.name ?? '').toLowerCase()
+  if (name == 'br') {
+    out.push({ name: 'br' } as HtmlNode)
+    return
+  }
+  if (name == 'img') {
+    out.push(node)
+    return
+  }
+  if (name == 'a') {
+    out.push(node)
+    return
+  }
+  if (isBlockTag(name)) {
+    const blockNode: HtmlNode = {
+      name: node.name,
+      attrs: node.attrs,
+      children: node.children
+    } as HtmlNode
+    out.push(blockNode)
+    return
+  }
+
+  let currentClass: string = inheritedClass
+  const myClass: string = inlineClass(name)
+  if (myClass.length > 0) {
+    if (currentClass.length > 0) {
+      if (currentClass.indexOf(myClass) < 0) {
+        currentClass = currentClass + ' ' + myClass
+      }
+    } else {
+      currentClass = myClass
+    }
+  }
+
+  let currentColor: string = inheritedColor
+  const myColor: string = nodeColor(node)
+  if (myColor.length > 0) {
+    currentColor = myColor
+  }
+
+  const kids: HtmlNode[] | null = node.children ?? null
+  if (kids != null && kids.length > 0) {
+    for (let i = 0; i < kids.length; i++) {
+      flattenInline(kids[i], currentClass, currentColor, out)
+    }
+  } else if (node.text != null && node.text!.length > 0) {
+    pushTextLeaf(node.text!, currentClass, currentColor, out)
+  }
+}
+
+function cleanEmptyTextNodes(nodes: HtmlNode[]): HtmlNode[] {
+  const result: HtmlNode[] = []
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]
+    if (node.type == 'text') {
+      const t: string = node.text ?? ''
+      if (t.trim().length == 0) {
+        const prevIsInline: boolean = (result.length > 0 && result[result.length - 1].type == 'text' && (result[result.length - 1].text ?? '').trim().length > 0)
+        let nextIsInline = false
+        if (i + 1 < nodes.length) {
+          const next = nodes[i + 1]
+          if (next.type == 'text' && (next.text ?? '').trim().length > 0) {
+            nextIsInline = true
+          }
+        }
+        if (prevIsInline && nextIsInline) {
+          result[result.length - 1].text = (result[result.length - 1].text ?? '') + ' '
+        }
+        continue
+      }
+    }
+    result.push(node)
+  }
+  return result
+}
+
+function flattenChildren(nodes: HtmlNode[], inheritedColor: string): HtmlNode[] {
+  const flattened: HtmlNode[] = []
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]
+    if (node.type == 'text') {
+      pushTextLeaf(node.text ?? '', '', inheritedColor, flattened)
+    } else if (node.name == 'br' || node.name == 'img' || node.name == 'a') {
+      flattened.push(node)
+    } else if (node.name == 'ul' || node.name == 'ol') {
+      // 列表容器完整保留！只平铺每一个 li 的内部子节点
+      const pColor: string = nodeColor(node).length > 0 ? nodeColor(node) : inheritedColor
+      const items: HtmlNode[] = node.children ?? []
+      for (let j = 0; j < items.length; j++) {
+        const liNode = items[j]
+        const liColor: string = nodeColor(liNode).length > 0 ? nodeColor(liNode) : pColor
+        liNode.children = flattenChildren(liNode.children ?? [], liColor)
+      }
+      flattened.push(node)
+    } else if (isParagraphContainer(node.name ?? '')) {
+      // 只有普通段落容器才检查是否包含子块并拆分
+      const pColor: string = nodeColor(node).length > 0 ? nodeColor(node) : inheritedColor
+      const kids: HtmlNode[] | null = node.children ?? null
+      if (kids != null && kids.length > 0) {
+        const subNodes: HtmlNode[] = flattenChildren(kids, pColor)
+        let hasSubBlock = false
+        for (let j = 0; j < subNodes.length; j++) {
+          if (isBlockTag(subNodes[j].name ?? '')) {
+            hasSubBlock = true
+            break
+          }
+        }
+        if (!hasSubBlock) {
+          if (subNodes.length > 0) {
+            node.children = subNodes
+            flattened.push(node)
+          }
+        } else {
+          // 包含块级子节点，按标准 HTML 规则将内部内联内容与块级内容平铺拆分
+          let inlineBuf: HtmlNode[] = []
+          for (let j = 0; j < subNodes.length; j++) {
+            const sub = subNodes[j]
+            if (isBlockTag(sub.name ?? '')) {
+              if (inlineBuf.length > 0) {
+                flattened.push({ name: 'div', attrs: node.attrs, children: inlineBuf } as HtmlNode)
+                inlineBuf = []
+              }
+              flattened.push(sub)
+            } else {
+              inlineBuf.push(sub)
+            }
+          }
+          if (inlineBuf.length > 0) {
+            flattened.push({ name: 'div', attrs: node.attrs, children: inlineBuf } as HtmlNode)
+          }
+        }
+      }
+    } else if (isBlockTag(node.name ?? '')) {
+      // 其他块级标签（如 h1~h6, pre, table 等）
+      const pColor: string = nodeColor(node).length > 0 ? nodeColor(node) : inheritedColor
+      const kids: HtmlNode[] | null = node.children ?? null
+      if (kids != null && kids.length > 0) {
+        node.children = flattenChildren(kids, pColor)
+      }
+      flattened.push(node)
+    } else {
+      const pColor: string = nodeColor(node).length > 0 ? nodeColor(node) : inheritedColor
+      flattenInline(node, '', pColor, flattened)
+    }
+  }
+  return cleanEmptyTextNodes(flattened)
 }
 
 /**
@@ -690,6 +953,18 @@ function headingStyle(name: string): string {
   const sz: UTSJSONObject = { h1: '24px', h2: '20px', h3: '18px', h4: '16px', h5: '14px', h6: '13px' }
   // 只给字号：粗体交给模板上的静态 class="mp-b"（理由见 <style> 里的说明）
   return 'font-size:' + (sz.getString(name) ?? '16px')
+}
+
+function headingNodeStyle(n: HtmlNode): string {
+  let s: string = headingStyle(n.name ?? '') + ';width:100%;margin-bottom:12px'
+  const attrs = n.attrs
+  if (attrs != null) {
+    const c = attrs.getString('_color')
+    if (c != null && c.length > 0) {
+      s += ';color:' + c
+    }
+  }
+  return s
 }
 
 /**
@@ -1013,9 +1288,12 @@ function parseHtml(html: string): HtmlNode[] {
         if (liGt == -1) break
         const liE = inner.indexOf('</li>', liGt)
         if (liE == -1) break
+        const liTag = inner.substring(liS + 1, liGt)
+        const liAttrs = parseAttrs(liTag)
+        extractColor(liAttrs)
         const liChildren = parseHtml(inner.substring(liGt + 1, liE))
         if (liChildren.length > 0) {
-          items.push({ name: 'li', children: liChildren } as HtmlNode)
+          items.push({ name: 'li', attrs: liAttrs, children: liChildren } as HtmlNode)
         }
         li = liE + 5
       }
@@ -1117,8 +1395,8 @@ function preprocessHtml(raw: string): string {
 function doParse(html: string): void {
   const safeHtml = preprocessHtml(html)
   const nodes = parseHtml(safeHtml)
-  localNodes.value = nodes
-  if (nodes.length > 0) {
+  localNodes.value = flattenChildren(nodes, '')
+  if (localNodes.value.length > 0) {
     setTimeout(() => { emit('load') }, 50)
   }
 }
@@ -1129,9 +1407,34 @@ function getText(): string { return flatText({ children: localNodes.value } as H
 
 function onLinkTap(n: HtmlNode): void {
   const href = n.attrs != null ? (n.attrs!.getString('href') ?? '') : ''
-  emit('linktap', n.attrs ?? ({} as UTSJSONObject))
-  if (href.length > 0 && href.includes('://')) {
-    uni.setClipboardData({ data: href, success: () => { uni.showToast({ title: '链接已复制', icon: 'none' }) } })
+  const attrs = n.attrs ?? ({} as UTSJSONObject)
+  emit('linktap', attrs)
+  // 若外部业务通过 @linktap 接管了跳转并标记 ignore: true，则中断内部默认处理
+  if (attrs.getBoolean('ignore') == true) return
+  if (href.length == 0) return
+
+  // 1. 应用内页面路径直接跳转
+  if (href.startsWith('/')) {
+    uni.navigateTo({ url: href })
+    return
+  }
+
+  // 2. 外部网络链接（带协议）
+  if (href.includes('://')) {
+    // #ifdef WEB
+    try {
+      window.open(href, '_blank')
+      return
+    } catch (_e) {}
+    // #endif
+
+    // 默认兜底：复制外链并提示
+    uni.setClipboardData({
+      data: href,
+      success: () => {
+        uni.showToast({ title: '链接已复制', icon: 'none' })
+      }
+    })
   }
 }
 
@@ -1293,7 +1596,61 @@ defineExpose({
 </script>
 
 <style>
-._mp_root { padding: 1px 0; }
+/* #ifdef WEB */
+._mp_root {
+  display: block;
+  width: 100%;
+  padding: 1px 0;
+  box-sizing: border-box;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #1e293b;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+._mp_block {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  line-height: 1.75;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+._mp_block uni-text,
+._mp_root uni-text,
+._mp_inline {
+  display: inline;
+}
+._mp_block uni-image,
+._mp_root uni-image {
+  display: block;
+  width: 100%;
+}
+/* #endif */
+
+/* #ifndef WEB */
+._mp_root {
+  padding: 1px 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+._mp_block {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 10px;
+  line-height: 1.75;
+}
+._mp_inline {
+  max-width: 100%;
+  font-size: 15px;
+  line-height: 1.75;
+}
+/* #endif */
 .mp-a { color: #366092; }
 /*
   行内样式一律写成静态 class，动态 `:style` 只留字号。
