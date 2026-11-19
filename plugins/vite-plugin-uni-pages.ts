@@ -874,6 +874,20 @@ function findScriptBlocks(code: string): Array<{ start: number; end: number }> {
 }
 
 /**
+ * 校验源码中是否显式声明了页面级路由宏（<script> 内的 definePage 调用，或顶层的 <route> 块）。
+ * 模板内的说明文案（如卡片说明中的 definePage(...)）或非宏标签（如 <route-view>）严禁误判为宏声明。
+ */
+function hasPageMacroDeclaration(code: string): boolean {
+  const scriptBlocks = findScriptBlocks(code);
+  for (const block of scriptBlocks) {
+    if (scanDefinePageCall(code.slice(block.start, block.end)) != null) {
+      return true;
+    }
+  }
+  return /<route\b[^>]*>[\s\S]*?<\/route>/.test(code);
+}
+
+/**
  * 移除 definePage(...) 宏调用，避免运行时报错；未命中时返回 null。
  *
  * 搜索范围限定在 [from, to)：调用方传入 <script> 块区间后，模板中作为文档展示的
@@ -1724,10 +1738,13 @@ function writeBackConfig(
 
   const managedSubPrefixes = (options?.subPackages ?? []).map(p => `${p.replace(/\\/g, '/').replace(/\/+$/, '')}/`);
 
-  // 剔除已被拆分为子分包的旧父级分包（如旧的 root: "src/sub"）以及受管目录下在磁盘上已删除的分包
+  // 剔除已被拆分为子分包且自身无页面的旧父级分包（如旧的 root: "src/sub"）以及受管目录下在磁盘上已删除的分包
   currentConfig.subPackages = currentConfig.subPackages.filter((cp) => {
     const cpNorm = cp.root.replace(/\\/g, '/');
-    const isObsoleteParent = scannedSubPkgs.some(sp => sp.root.startsWith(`${cp.root}/`));
+    const hasChildSubPackages = scannedSubPkgs.some(sp => sp.root.startsWith(`${cp.root}/`));
+    const hasSelfPages = scannedSubPkgs.some(sp => sp.root === cp.root);
+    // 只有当已拆出子包且父分包自身不再包含任何直接页面时，才视为被废弃的父分包；mixed 混杂场景必须保留父包属性（解决 R06 父包 name 回写丢失）
+    const isObsoleteParent = hasChildSubPackages && !hasSelfPages;
     if (isObsoleteParent) {
       configUpdated = true;
       return false;
@@ -1745,10 +1762,19 @@ function writeBackConfig(
     const spkg = scannedSubPkgs[s];
     const targetSub = currentConfig.subPackages.find(cp => cp.root === spkg.root);
     if (targetSub == null) {
-      currentConfig.subPackages.push({ root: spkg.root, pages: spkg.pages });
+      const { pages: _discard, ...restProps } = spkg;
+      const cleanSubPages = (spkg.pages || []).map((p) => {
+        const cleanP = { ...p };
+        cleanTempProps(cleanP, true);
+        return cleanP;
+      });
+      currentConfig.subPackages.push({ ...restProps, root: spkg.root, pages: cleanSubPages });
       configUpdated = true;
     }
     else {
+      // 保留原有 targetSub 上的所有非 pages 属性（如 name、independent 等），并补充 spkg 的其他属性
+      const { pages: _discard, root: _r, ...restProps } = spkg;
+      Object.assign(targetSub, restProps);
       const newSubPages: PageConfig[] = [];
       for (let pIdx = 0; pIdx < spkg.pages.length; pIdx++) {
         const p = spkg.pages[pIdx];
@@ -1937,7 +1963,7 @@ export async function buildPages(
         }
       }
     }
-    else if (raw.includes('definePage(') || raw.includes('<route')) {
+    else if (hasPageMacroDeclaration(raw)) {
       const old = existingPagesMap.get(pagePath);
       if (old != null) {
         Object.assign(page, old);
@@ -2062,7 +2088,7 @@ export async function buildPages(
           }
         }
       }
-      else if (raw.includes('definePage(') || raw.includes('<route')) {
+      else if (hasPageMacroDeclaration(raw)) {
         const old = existingPagesMap.get(fullSubPath);
         if (old != null) {
           Object.assign(page, old);
@@ -2085,8 +2111,9 @@ export async function buildPages(
         mergedPages.push(sp);
       }
       else if (manual != null) {
+        const { _hasMeta: _m, _variants: _v, ...restManual } = manual as any;
         mergedPages.push({
-          ...manual,
+          ...restManual,
           path: sp.path
         });
       }
@@ -2095,7 +2122,18 @@ export async function buildPages(
       }
     }
 
-    scannedSubPkgs.push({ root: entry.rootDir, pages: mergedPages });
+    const existingConfigPkg = configSubPkgs.find(cp => cp.root === entry.rootDir);
+    if (existingConfigPkg != null) {
+      const { pages: _discard, ...restProps } = existingConfigPkg;
+      scannedSubPkgs.push({
+        ...restProps,
+        root: entry.rootDir,
+        pages: mergedPages
+      });
+    }
+    else {
+      scannedSubPkgs.push({ root: entry.rootDir, pages: mergedPages });
+    }
   }
 
   // 将 baseConfig 中未扫描且不属于受管目录的外部手写分包（如 uni_modules 第三方分包）原样保留
@@ -2125,8 +2163,9 @@ export async function buildPages(
       finalPages.push(sp);
     }
     else if (manual != null) {
+      const { _hasMeta: _m, _variants: _v, ...restManual } = manual as any;
       finalPages.push({
-        ...manual,
+        ...restManual,
         path: sp.path
       });
     }
