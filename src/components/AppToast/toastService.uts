@@ -7,23 +7,26 @@ export const toastState: ToastState = reactive<ToastState>({
   type: 'text',
   position: 'top',
   icon: '',
-  mask: false
+  mask: false,
+  immediate: false
 });
 
-let toastTimer: any | null = null;
+let toastTimer: number | null = null;
 
 function clearCurrentTimer(): void {
   if (toastTimer != null) {
-    clearTimeout(toastTimer);
+    clearTimeout(toastTimer as number);
     toastTimer = null;
   }
 }
 
 /**
  * 隐藏当前 Toast
+ * @param immediate 是否立即关闭（不走离场过渡动画，如页面切换时立即销毁）
  */
-export function hideToast(): void {
+export function hideToast(immediate: boolean = false): void {
   clearCurrentTimer();
+  toastState.immediate = immediate;
   toastState.visible = false;
 }
 
@@ -76,12 +79,13 @@ export function showToast(optionsOrTitle: any, defaultType: ToastType = 'text'):
   toastState.position = position;
   toastState.icon = icon;
   toastState.mask = mask;
+  toastState.immediate = false;
   toastState.visible = true;
 
   if (duration > 0 && type != 'loading') {
-    toastTimer = setTimeout(() => {
+    toastTimer = (setTimeout((): void => {
       hideToast();
-    }, duration);
+    }, duration) as any) as number;
   }
 }
 

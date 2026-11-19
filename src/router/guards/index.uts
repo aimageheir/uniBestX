@@ -10,6 +10,7 @@ import type {
 } from '@/uni_modules/route-bestX/index.uts';
 import { buildGuardContext } from '@/uni_modules/route-bestX/index.uts';
 import { maskSensitive } from '@/src/utils/report/error.uts';
+import { hideToast } from '@/src/components/AppToast/toastService.uts';
 import { guardMaintenance } from './guardMaintenance.uts';
 import { guardLogin } from './guardLogin.uts';
 
@@ -119,6 +120,10 @@ export function setupRouteGuards(router: Router): void {
       sanitizedQuery
     );
     // #endif
+    if (sanitizedTo !== sanitizedFrom) {
+      // 页面跳转时立即隐藏当前全局 Toast（无跨页面动画残留）
+      hideToast(true);
+    }
     runGuardsPipeline(to, from, next, api);
     return null;
   });

@@ -36,6 +36,7 @@ export type ToastState = {
   position: ToastPosition;
   icon: string;
   mask: boolean;
+  immediate: boolean;
 };
 
 /**

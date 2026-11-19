@@ -128,4 +128,14 @@ describe('appToast and useToast Hook', () => {
     expect(toast.state.type).toBe('success');
     expect(toast.state.title).toBe('数据获取完毕');
   });
+
+  it('supports immediate hide without exit animation delay', () => {
+    showToast('即将切换页面', 'text');
+    expect(toastState.visible).toBe(true);
+    expect(toastState.immediate).toBe(false);
+
+    hideToast(true);
+    expect(toastState.visible).toBe(false);
+    expect(toastState.immediate).toBe(true);
+  });
 });

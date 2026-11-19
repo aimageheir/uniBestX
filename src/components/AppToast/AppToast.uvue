@@ -1,6 +1,7 @@
 <script setup lang="uts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useThemeStore } from '@/src/store/index.uts';
+import { curIdx } from '@/src/tabbar/index.uts';
 import { hideToast, toastState } from './toastService.uts';
 
 const themeStore = useThemeStore();
@@ -37,9 +38,9 @@ function startRotate(): void {
   }
   rotateDeg.value = 0;
   // 每 50ms 顺时针步进 24 度（每秒转 1.33 圈，丝滑灵动）
-  rotateTimer = setInterval((): void => {
+  rotateTimer = (setInterval((): void => {
     rotateDeg.value = (rotateDeg.value + 24) % 360;
-  }, 50);
+  }, 50) as any) as number;
 }
 
 function stopRotate(): void {
@@ -119,21 +120,36 @@ watch(
       }, 20);
     }
     else {
+      if (toastState.immediate) {
+        isActive.value = false;
+        isRendered.value = false;
+        return;
+      }
       isActive.value = false;
-      closeAnimTimer = setTimeout((): void => {
+      closeAnimTimer = (setTimeout((): void => {
         isRendered.value = false;
         closeAnimTimer = -1;
-      }, 260);
+      }, 260) as any) as number;
     }
   },
   { immediate: true }
 );
+
+// 监听 TabBar 切换，若 Toast 处于显示状态则立即关闭（无跨 Tab 动画残留）
+watch(curIdx, (_newIdx: number): void => {
+  if (toastState.visible) {
+    hideToast(true);
+  }
+});
 
 onBeforeUnmount((): void => {
   stopRotate();
   if (closeAnimTimer != -1) {
     clearTimeout(closeAnimTimer);
     closeAnimTimer = -1;
+  }
+  if (toastState.visible) {
+    hideToast(true);
   }
 });
 

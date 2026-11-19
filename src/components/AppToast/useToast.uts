@@ -31,8 +31,8 @@ export type UseToastReturn = {
   loading: (title?: string, mask?: boolean) => void;
   /** 承接 Promise 异步操作，在原地平滑切换为 success/error 状态（Ding 原地突变） */
   promise: <T>(promise: Promise<T>, messages: ToastPromiseMessages) => Promise<T>;
-  /** 关闭隐藏提示 */
-  hide: () => void;
+  /** 关闭隐藏提示（传 true 时立即销毁，不走离场动画） */
+  hide: (immediate?: boolean) => void;
 };
 
 /**
@@ -66,8 +66,8 @@ export function useToast(): UseToastReturn {
       toastLoading(title, mask);
     },
     promise: toastPromise,
-    hide: (): void => {
-      hideToast();
+    hide: (immediate: boolean = false): void => {
+      hideToast(immediate);
     }
   };
 }

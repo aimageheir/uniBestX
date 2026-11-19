@@ -1725,3 +1725,4 @@ class SystemUtils { getWindowHeight(): number { ... } }
 - [ ] **13. `as` 后不写泛型实例化别名** —— 直写 `as PageResult<Item>`；别名只出现在类型位置
 - [ ] **14. 局部声明顺序正确** —— 先声明后使用；回调里不引用承载它自身的变量；局部函数不当值传递
 - [ ] **15. `UTSJSONObject` 下标取值** —— 不点属性；`Class` 实例反过来只点操作符；**`UTSJSONObject` 不出 api 层**
+- [ ] **16. 定时器句柄必须双层强转** —— 变量显式 `number` 标注时，`setTimeout` / `setInterval` 赋值必须就地双层强转 `(setTimeout(...) as any) as number` / `(setInterval(...) as any) as number`，消除 VSCode TS2322 / TS2352（详见 1.26）
