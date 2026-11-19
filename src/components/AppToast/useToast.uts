@@ -1,0 +1,73 @@
+import {
+  hideToast,
+  showToast,
+  toastError,
+  toastInfo,
+  toastLoading,
+  toastPromise,
+  toastState,
+  toastSuccess,
+  toastWarning
+} from './toastService.uts';
+import type { ToastPromiseMessages, ToastState, ToastType } from './types.uts';
+
+/**
+ * useToast Hook 返回值契约
+ */
+export type UseToastReturn = {
+  /** 当前 Toast 响应式状态 */
+  state: ToastState;
+  /** 通用弹出方法（支持纯文本或完整 ToastOptions） */
+  show: (optionsOrTitle: any, defaultType?: ToastType) => void;
+  /** 成功提示 */
+  success: (title: string, duration?: number) => void;
+  /** 错误失败提示 */
+  error: (title: string, duration?: number) => void;
+  /** 警告提示 */
+  warning: (title: string, duration?: number) => void;
+  /** 信息提示 */
+  info: (title: string, duration?: number) => void;
+  /** 加载等待提示 */
+  loading: (title?: string, mask?: boolean) => void;
+  /** 承接 Promise 异步操作，在原地平滑切换为 success/error 状态（Ding 原地突变） */
+  promise: <T>(promise: Promise<T>, messages: ToastPromiseMessages) => Promise<T>;
+  /** 关闭隐藏提示 */
+  hide: () => void;
+};
+
+/**
+ * AppToast 组合式 Hook
+ *
+ * 供页面或组件在 setup 中随时调用：
+ * ```uts
+ * const toast = useToast();
+ * toast.success('保存成功');
+ * ```
+ */
+export function useToast(): UseToastReturn {
+  return {
+    state: toastState,
+    show: (optionsOrTitle: any, defaultType: ToastType = 'text'): void => {
+      showToast(optionsOrTitle, defaultType);
+    },
+    success: (title: string, duration: number = 2000): void => {
+      toastSuccess(title, duration);
+    },
+    error: (title: string, duration: number = 2000): void => {
+      toastError(title, duration);
+    },
+    warning: (title: string, duration: number = 2000): void => {
+      toastWarning(title, duration);
+    },
+    info: (title: string, duration: number = 2000): void => {
+      toastInfo(title, duration);
+    },
+    loading: (title: string = '加载中...', mask: boolean = true): void => {
+      toastLoading(title, mask);
+    },
+    promise: toastPromise,
+    hide: (): void => {
+      hideToast();
+    }
+  };
+}

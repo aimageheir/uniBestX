@@ -5,9 +5,11 @@ import { isPageTabbar, switchTabbar } from '@/src/tabbar/index.uts';
 import type { AuthUserInfo, LoginResult } from '@/src/api/auth/auth.uts';
 import { useRoute, useRouter } from '@/uni_modules/route-bestX/index.uts';
 import { DEFAULT_HOME_PAGE } from '@/src/router/config.uts';
+import { useToast } from '@/src/components/AppToast/useToast.uts';
 
 const router = useRouter();
 const route = useRoute();
+const toast = useToast();
 const tokenStore = useTokenStore();
 const userStore = useUserStore();
 
@@ -83,10 +85,7 @@ function onLoginSuccess(res: LoginResult) {
     avatar: res.userInfo.avatar,
     permissions: res.userInfo.permissions
   } as IUserInfo);
-  uni.showToast({
-    title: '登录成功',
-    icon: 'success'
-  });
+  toast.success('登录成功');
   setTimeout(() => {
     navigateToTarget();
   }, 800);

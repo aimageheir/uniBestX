@@ -1,0 +1,138 @@
+<script setup lang="uts">
+import { useToast } from '@/src/components/AppToast/useToast.uts';
+
+const toast = useToast();
+
+function onShowSuccess(): void {
+  toast.success('操作已成功保存');
+}
+
+function onShowError(): void {
+  toast.error('请求失败，请稍后重试');
+}
+
+function onShowWarning(): void {
+  toast.warning('当前网络环境较弱');
+}
+
+function onShowInfo(): void {
+  toast.info('系统将于今晚更新维护');
+}
+
+function onShowLoading(): void {
+  toast.loading('拼命加载中...');
+  setTimeout((): void => {
+    toast.hide();
+    toast.success('加载完成');
+  }, 1500);
+}
+
+function onShowCustomBottom(): void {
+  toast.show({
+    title: '从底部灵动弹出的自定义 Toast',
+    position: 'bottom',
+    icon: '🚀',
+    duration: 2500
+  });
+}
+
+function onShowDingPromise(): void {
+  const fakeApi = new Promise<boolean>((resolve: (v: boolean) => void): void => {
+    setTimeout((): void => {
+      resolve(true);
+    }, 1300);
+  });
+
+  toast.promise<boolean>(fakeApi, {
+    loading: '正在异步提交中...',
+    success: 'Ding! 原地变形保存成功'
+  });
+}
+</script>
+
+<template>
+  <view class="mt-[16px] mx-[16px]">
+    <view class="flex flex-row items-center justify-between mb-[10px]">
+      <view class="flex flex-row items-center">
+        <text class="text-[14px] font-bold text-[#1e293b]">✨ 自定义 Toast 示例</text>
+        <text class="text-[10px] font-medium px-[6px] py-[1px] ml-[6px] rounded-[4px] text-[#0284c7] bg-[#0284c714]">
+          useToast · AppToast
+        </text>
+      </view>
+      <text class="text-[11px] text-[#94a3b8]">独立组件包</text>
+    </view>
+
+    <view class="p-[14px] rounded-[12px] border-[1px] border-solid bg-[#f8fafc] border-[#e2e8f0]">
+      <!-- 快捷导入代码示例 -->
+      <view class="rounded-[8px] bg-[#0f172a] p-[10px] flex flex-col">
+        <text class="text-[11px] leading-[18px] text-[#e2e8f0]" style="font-family: monospace;">import { useToast } from '@/src/components/AppToast/useToast.uts';</text>
+        <text class="text-[11px] leading-[18px] text-[#38bdf8] mt-[2px]" style="font-family: monospace;">const toast = useToast();</text>
+        <text class="text-[11px] leading-[18px] text-[#a7f3d0] mt-[2px]" style="font-family: monospace;">toast.success('操作成功');</text>
+      </view>
+
+      <!-- 操作演示按钮网格 -->
+      <view class="mt-[12px] flex flex-col">
+        <view class="flex flex-row items-center mb-[8px]">
+          <text class="text-[12px] font-bold text-[#1e293b]">点击体验灵动岛药丸交互</text>
+          <text class="text-[10px] text-[#94a3b8] ml-[6px]">安全区避让 · 状态机响应</text>
+        </view>
+
+        <!-- 第 1 排：常用反馈 -->
+        <view class="flex flex-row items-center justify-between mb-[8px]">
+          <view
+            class="flex-1 mr-[8px] py-[8px] px-[4px] rounded-[8px] bg-[#ecfdf5] border-[1px] border-solid border-[#a7f3d0] flex flex-row items-center justify-center active:opacity-70"
+            @click="onShowSuccess"
+          >
+            <text class="text-[11px] font-semibold text-[#059669]">成功 (Success)</text>
+          </view>
+          <view
+            class="flex-1 py-[8px] px-[4px] rounded-[8px] bg-[#fef2f2] border-[1px] border-solid border-[#fecaca] flex flex-row items-center justify-center active:opacity-70"
+            @click="onShowError"
+          >
+            <text class="text-[11px] font-semibold text-[#dc2626]">失败 (Error)</text>
+          </view>
+        </view>
+
+        <!-- 第 2 排：警告与提示 -->
+        <view class="flex flex-row items-center justify-between mb-[8px]">
+          <view
+            class="flex-1 mr-[8px] py-[8px] px-[4px] rounded-[8px] bg-[#fffbeb] border-[1px] border-solid border-[#fde68a] flex flex-row items-center justify-center active:opacity-70"
+            @click="onShowWarning"
+          >
+            <text class="text-[11px] font-semibold text-[#d97706]">警告 (Warning)</text>
+          </view>
+          <view
+            class="flex-1 py-[8px] px-[4px] rounded-[8px] bg-[#f0f9ff] border-[1px] border-solid border-[#bae6fd] flex flex-row items-center justify-center active:opacity-70"
+            @click="onShowInfo"
+          >
+            <text class="text-[11px] font-semibold text-[#0284c7]">信息 (Info)</text>
+          </view>
+        </view>
+
+        <!-- 第 3 排：加载与自定义底部弹出 -->
+        <view class="flex flex-row items-center justify-between mb-[8px]">
+          <view
+            class="flex-1 mr-[8px] py-[8px] px-[4px] rounded-[8px] bg-[#f8fafc] border-[1px] border-solid border-[#cbd5e1] flex flex-row items-center justify-center active:opacity-70"
+            @click="onShowLoading"
+          >
+            <text class="text-[11px] font-semibold text-[#475569]">Loading 加载</text>
+          </view>
+          <view
+            class="flex-1 py-[8px] px-[4px] rounded-[8px] bg-[#faf5ff] border-[1px] border-solid border-[#e9d5ff] flex flex-row items-center justify-center active:opacity-70"
+            @click="onShowCustomBottom"
+          >
+            <text class="text-[11px] font-semibold text-[#9333ea]">底部自定义 🚀</text>
+          </view>
+        </view>
+
+        <!-- 第 4 排：Ding 风格 Promise 异步原地变形 -->
+        <view
+          class="py-[9px] px-[12px] rounded-[8px] bg-[#0284c714] border-[1px] border-solid border-[#0284c740] flex flex-row items-center justify-center active:opacity-70"
+          @click="onShowDingPromise"
+        >
+          <text class="text-[11px] font-semibold text-[#0284c7]">✨ 体验 Ding 原地变形：Loading ➜ Success</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>

@@ -28,9 +28,9 @@ const div = 'div';
     expect(res).not.toBeNull();
     const result = res!.code;
 
-    // template 内被成功转换：div 转为 view，b 转为带 font-bold 的 text
+    // template 内被成功转换：div 转为 view，b 转为带 font-weight: bold 的 text
     expect(result).toContain('<view>\n      1111\n    </view>');
-    expect(result).toContain('<text class="font-bold">\n      11112222\n    </text>');
+    expect(result).toContain('<text style="font-weight: bold;">\n      11112222\n    </text>');
     expect(result).not.toContain('<div>');
     expect(result).not.toContain('<b>');
 
@@ -44,7 +44,7 @@ const div = 'div';
     expect(result).toContain('.div { color: red; }');
   });
 
-  it('merges defaultClass into existing class without duplicates', () => {
+  it('merges defaultStyle into existing style without duplicate conflicts', () => {
     const raw = `
 <template>
   <div>
@@ -59,14 +59,14 @@ const div = 'div';
     expect(res).not.toBeNull();
     const result = res!.code;
 
-    // 自动前置合并 font-bold
-    expect(result).toContain('<text class="font-bold text-red-500 text-sm">bold red</text>');
-    // 已经包含 font-bold 则不重复追加
+    // 默认注入 style="font-weight: bold;"
+    expect(result).toContain('<text style="font-weight: bold;" class="text-red-500 text-sm">bold red</text>');
+    // 已经包含 font-bold 则智能退让不注入 style
     expect(result).toContain('<text class="font-bold text-blue-500">already bold</text>');
-    // i 标签注入 italic
-    expect(result).toContain('<text class="italic opacity-80">italic</text>');
-    // s 标签注入 line-through
-    expect(result).toContain('<text class="line-through text-gray-400">strikethrough</text>');
+    // i 标签注入 font-style: italic;
+    expect(result).toContain('<text style="font-style: italic;" class="opacity-80">italic</text>');
+    // s 标签注入 text-decoration-line: line-through;
+    expect(result).toContain('<text style="text-decoration-line: line-through;" class="text-gray-400">strikethrough</text>');
   });
 
   it('supports attributes and self-closing tags', () => {
@@ -118,7 +118,7 @@ const div = 'div';
 
     expect(result).toContain('<view>');
     expect(result).toContain('</view>');
-    expect(result).toContain('<text class="font-bold">bold</text>');
+    expect(result).toContain('<text style="font-weight: bold;">bold</text>');
   });
 
   it('skips non-vue files and node_modules', () => {

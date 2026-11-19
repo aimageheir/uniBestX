@@ -1,0 +1,424 @@
+<script setup lang="uts">
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useThemeStore } from '@/src/store/index.uts';
+import { hideToast, toastState } from './toastService.uts';
+
+const themeStore = useThemeStore();
+
+// 状态栏安全距离计算
+const statusBarHeight = computed((): number => {
+  try {
+    const windowInfo = uni.getWindowInfo();
+    const h = windowInfo.statusBarHeight;
+    if (h != null && h > 0) {
+      return h;
+    }
+  }
+  catch {}
+  return 20;
+});
+
+const topPaddingStyle = computed((): string => {
+  return `top: ${statusBarHeight.value + 12}px;`;
+});
+
+// 动画生命周期控制：DOM 挂载与动画类解耦，确保进出场 transition 完整触发
+const isRendered = ref<boolean>(false);
+const isActive = ref<boolean>(false);
+let closeAnimTimer: number = -1;
+
+// 100% 跨端可靠的 Loading 旋转步进控制器（彻底解决原生 App / 蒸汽模式 CSS keyframes 失效）
+const rotateDeg = ref<number>(0);
+let rotateTimer: number = -1;
+
+function startRotate(): void {
+  if (rotateTimer != -1) {
+    return;
+  }
+  rotateDeg.value = 0;
+  // 每 50ms 顺时针步进 24 度（每秒转 1.33 圈，丝滑灵动）
+  rotateTimer = setInterval((): void => {
+    rotateDeg.value = (rotateDeg.value + 24) % 360;
+  }, 50);
+}
+
+function stopRotate(): void {
+  if (rotateTimer != -1) {
+    clearInterval(rotateTimer);
+    rotateTimer = -1;
+  }
+}
+
+// 单值化条件计算属性（严格遵循 unibestX 鸿蒙/小程序单值约束）
+const isMaskVisible = computed((): boolean => toastState.visible && toastState.mask);
+const isSuccess = computed((): boolean => toastState.type == 'success');
+const isError = computed((): boolean => toastState.type == 'error');
+const isWarning = computed((): boolean => toastState.type == 'warning');
+const isInfo = computed((): boolean => toastState.type == 'info');
+const isLoading = computed((): boolean => toastState.type == 'loading');
+const isCustomIcon = computed((): boolean => toastState.icon != '');
+
+const isPositionTop = computed((): boolean => toastState.position == 'top');
+const isPositionCenter = computed((): boolean => toastState.position == 'center');
+const isPositionBottom = computed((): boolean => toastState.position == 'bottom');
+
+const isDark = computed((): boolean => themeStore.state.isDark);
+
+// 动画类计算属性（避免 template 裸写复合数组）
+const cardClassTop = computed((): string => {
+  const themeCls = isDark.value ? 'toast-card--dark' : 'toast-card--light';
+  const animCls = isActive.value ? 'toast-card--active' : 'toast-card--hidden-top';
+  return `${themeCls} ${animCls}`;
+});
+
+const cardClassCenter = computed((): string => {
+  const themeCls = isDark.value ? 'toast-card--dark' : 'toast-card--light';
+  const animCls = isActive.value ? 'toast-card--active' : 'toast-card--hidden-center';
+  return `${themeCls} ${animCls}`;
+});
+
+const cardClassBottom = computed((): string => {
+  const themeCls = isDark.value ? 'toast-card--dark' : 'toast-card--light';
+  const animCls = isActive.value ? 'toast-card--active' : 'toast-card--hidden-bottom';
+  return `${themeCls} ${animCls}`;
+});
+
+const maskClass = computed((): string => {
+  return isActive.value ? 'toast-mask--active' : '';
+});
+
+const spinnerStyle = computed((): string => {
+  return `transform: rotate(${rotateDeg.value}deg);`;
+});
+
+watch(
+  isLoading,
+  (val: boolean): void => {
+    if (val) {
+      startRotate();
+    }
+    else {
+      stopRotate();
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  (): boolean => toastState.visible,
+  (visibleVal: boolean): void => {
+    if (closeAnimTimer != -1) {
+      clearTimeout(closeAnimTimer);
+      closeAnimTimer = -1;
+    }
+
+    if (visibleVal) {
+      isRendered.value = true;
+      setTimeout((): void => {
+        isActive.value = true;
+      }, 20);
+    }
+    else {
+      isActive.value = false;
+      closeAnimTimer = setTimeout((): void => {
+        isRendered.value = false;
+        closeAnimTimer = -1;
+      }, 260);
+    }
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount((): void => {
+  stopRotate();
+  if (closeAnimTimer != -1) {
+    clearTimeout(closeAnimTimer);
+    closeAnimTimer = -1;
+  }
+});
+
+function onMaskClick(): void {
+  if (toastState.type != 'loading') {
+    hideToast();
+  }
+}
+</script>
+
+<template>
+  <view v-if="isRendered" class="toast-wrapper">
+    <!-- 全屏防穿透轻微蒙层（平滑淡入淡出） -->
+    <view
+      v-if="isMaskVisible"
+      class="toast-mask"
+      :class="maskClass"
+      @click="onMaskClick"
+    />
+
+    <!-- 顶部动态岛悬浮定位（Ding 风格弹簧物理入场与离场） -->
+    <view
+      v-if="isPositionTop"
+      class="toast-container toast-container--top"
+      :style="topPaddingStyle"
+    >
+      <view
+        class="toast-card"
+        :class="cardClassTop"
+      >
+        <!-- 成功图标 -->
+        <view v-if="isSuccess" class="toast-icon-wrap toast-icon-wrap--success">
+          <uni-icons type="checkmarkempty" size="18" color="#10b981" />
+        </view>
+
+        <!-- 错误失败图标 -->
+        <view v-else-if="isError" class="toast-icon-wrap toast-icon-wrap--error">
+          <uni-icons type="closeempty" size="18" color="#ef4444" />
+        </view>
+
+        <!-- 警告图标 -->
+        <view v-else-if="isWarning" class="toast-icon-wrap toast-icon-wrap--warning">
+          <uni-icons type="info-filled" size="18" color="#f59e0b" />
+        </view>
+
+        <!-- 常规信息图标 -->
+        <view v-else-if="isInfo" class="toast-icon-wrap toast-icon-wrap--info">
+          <uni-icons type="info" size="18" color="#3b82f6" />
+        </view>
+
+        <!-- Loading 加载指示器（多端顺滑旋转双重保证） -->
+        <view
+          v-else-if="isLoading"
+          class="toast-icon-wrap toast-spinner-wrap"
+          :style="spinnerStyle"
+        >
+          <uni-icons type="spinner-cycle" size="18" color="#38bdf8" />
+        </view>
+
+        <!-- 自定义图标 / Emoji -->
+        <view v-else-if="isCustomIcon" class="toast-icon-wrap">
+          <text class="toast-custom-icon">{{ toastState.icon }}</text>
+        </view>
+
+        <!-- 文本标题 -->
+        <text class="toast-text">{{ toastState.title }}</text>
+      </view>
+    </view>
+
+    <!-- 屏幕居中定位 -->
+    <view
+      v-else-if="isPositionCenter"
+      class="toast-container toast-container--center"
+    >
+      <view
+        class="toast-card"
+        :class="cardClassCenter"
+      >
+        <view v-if="isSuccess" class="toast-icon-wrap toast-icon-wrap--success">
+          <uni-icons type="checkmarkempty" size="18" color="#10b981" />
+        </view>
+        <view v-else-if="isError" class="toast-icon-wrap toast-icon-wrap--error">
+          <uni-icons type="closeempty" size="18" color="#ef4444" />
+        </view>
+        <view v-else-if="isWarning" class="toast-icon-wrap toast-icon-wrap--warning">
+          <uni-icons type="info-filled" size="18" color="#f59e0b" />
+        </view>
+        <view v-else-if="isInfo" class="toast-icon-wrap toast-icon-wrap--info">
+          <uni-icons type="info" size="18" color="#3b82f6" />
+        </view>
+        <view
+          v-else-if="isLoading"
+          class="toast-icon-wrap toast-spinner-wrap"
+          :style="spinnerStyle"
+        >
+          <uni-icons type="spinner-cycle" size="18" color="#38bdf8" />
+        </view>
+        <view v-else-if="isCustomIcon" class="toast-icon-wrap">
+          <text class="toast-custom-icon">{{ toastState.icon }}</text>
+        </view>
+        <text class="toast-text">{{ toastState.title }}</text>
+      </view>
+    </view>
+
+    <!-- 底部悬浮定位 -->
+    <view
+      v-else-if="isPositionBottom"
+      class="toast-container toast-container--bottom"
+    >
+      <view
+        class="toast-card"
+        :class="cardClassBottom"
+      >
+        <view v-if="isSuccess" class="toast-icon-wrap toast-icon-wrap--success">
+          <uni-icons type="checkmarkempty" size="18" color="#10b981" />
+        </view>
+        <view v-else-if="isError" class="toast-icon-wrap toast-icon-wrap--error">
+          <uni-icons type="closeempty" size="18" color="#ef4444" />
+        </view>
+        <view v-else-if="isWarning" class="toast-icon-wrap toast-icon-wrap--warning">
+          <uni-icons type="info-filled" size="18" color="#f59e0b" />
+        </view>
+        <view v-else-if="isInfo" class="toast-icon-wrap toast-icon-wrap--info">
+          <uni-icons type="info" size="18" color="#3b82f6" />
+        </view>
+        <view
+          v-else-if="isLoading"
+          class="toast-icon-wrap toast-spinner-wrap"
+          :style="spinnerStyle"
+        >
+          <uni-icons type="spinner-cycle" size="18" color="#38bdf8" />
+        </view>
+        <view v-else-if="isCustomIcon" class="toast-icon-wrap">
+          <text class="toast-custom-icon">{{ toastState.icon }}</text>
+        </view>
+        <text class="toast-text">{{ toastState.title }}</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<style lang="scss" scoped>
+.toast-wrapper {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+.toast-mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: auto;
+  transition-property: opacity;
+  transition-duration: 220ms;
+  transition-timing-function: ease-out;
+}
+
+.toast-mask--active {
+  opacity: 1;
+}
+
+.toast-container {
+  position: absolute;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.toast-container--top {
+  /* 由 topPaddingStyle 动态绑定避开状态栏 */
+}
+
+.toast-container--center {
+  top: 0;
+  bottom: 0;
+}
+
+.toast-container--bottom {
+  bottom: 80px;
+}
+
+/* 胶囊卡片（Ding 灵动岛风格药丸 + 弹簧物理 transition 硬件加速） */
+.toast-card {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  max-width: 85%;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 999px;
+  pointer-events: auto;
+  transition-property: transform, opacity;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.18, 0.89, 0.32, 1.15);
+}
+
+.toast-card--light {
+  border-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(15, 23, 42, 0.94);
+}
+
+.toast-card--dark {
+  border-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(24, 24, 27, 0.96);
+}
+
+/* 隐藏状态（顶部淡出并微幅上漂） */
+.toast-card--hidden-top {
+  opacity: 0;
+  transform: translateY(-24px) scale(0.92);
+}
+
+/* 隐藏状态（居中缩放淡出） */
+.toast-card--hidden-center {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+/* 隐藏状态（底部淡出并微幅下漂） */
+.toast-card--hidden-bottom {
+  opacity: 0;
+  transform: translateY(24px) scale(0.92);
+}
+
+/* 激活状态（归位呈现） */
+.toast-card--active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.toast-icon-wrap {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.toast-custom-icon {
+  font-size: 16px;
+  line-height: 18px;
+}
+
+.toast-text {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.3px;
+}
+
+/* Loading 旋转指示器容器 */
+.toast-spinner-wrap {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+  /* H5 / Web 端 CSS 满帧旋转动画辅助 */
+  animation: toast-spin 0.75s linear infinite;
+}
+
+@keyframes toast-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>

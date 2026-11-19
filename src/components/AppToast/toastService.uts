@@ -1,0 +1,135 @@
+import { reactive } from 'vue';
+import type { ToastPosition, ToastPromiseMessages, ToastState, ToastType } from './types.uts';
+
+export const toastState: ToastState = reactive<ToastState>({
+  visible: false,
+  title: '',
+  type: 'text',
+  position: 'top',
+  icon: '',
+  mask: false
+});
+
+let toastTimer: any | null = null;
+
+function clearCurrentTimer(): void {
+  if (toastTimer != null) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+}
+
+/**
+ * 隐藏当前 Toast
+ */
+export function hideToast(): void {
+  clearCurrentTimer();
+  toastState.visible = false;
+}
+
+/**
+ * 呼出通用 Toast 轻提示
+ *
+ * @param optionsOrTitle 提示文本内容，或完整的配置对象
+ * @param defaultType 当第一个参数为字符串时，可指定类型（默认 'text'）
+ */
+export function showToast(optionsOrTitle: any, defaultType: ToastType = 'text'): void {
+  clearCurrentTimer();
+
+  let title = '';
+  let type: ToastType = defaultType;
+  let duration: number = 2000;
+  let position: ToastPosition = 'top';
+  let icon = '';
+  let mask = false;
+
+  if (typeof optionsOrTitle == 'string') {
+    title = optionsOrTitle as string;
+  }
+  else if (optionsOrTitle != null && typeof optionsOrTitle == 'object') {
+    const opts = optionsOrTitle as UTSJSONObject;
+    if (opts.title != null) {
+      title = `${opts.title}`;
+    }
+    if (opts.type != null) {
+      type = opts.type as ToastType;
+    }
+    if (opts.duration != null) {
+      duration = opts.duration as number;
+    }
+    if (opts.position != null) {
+      position = opts.position as ToastPosition;
+    }
+    if (opts.icon != null) {
+      icon = opts.icon as string;
+    }
+    if (opts.mask != null) {
+      mask = opts.mask as boolean;
+    }
+    else if (type == 'loading') {
+      mask = true;
+    }
+  }
+
+  toastState.title = title;
+  toastState.type = type;
+  toastState.position = position;
+  toastState.icon = icon;
+  toastState.mask = mask;
+  toastState.visible = true;
+
+  if (duration > 0 && type != 'loading') {
+    toastTimer = setTimeout(() => {
+      hideToast();
+    }, duration);
+  }
+}
+
+/** 成功提示（翡翠绿图标微光） */
+export function toastSuccess(title: string, duration: number = 2000): void {
+  showToast({ title, type: 'success', duration });
+}
+
+/** 错误失败提示（珊瑚红图标微光） */
+export function toastError(title: string, duration: number = 2000): void {
+  showToast({ title, type: 'error', duration });
+}
+
+/** 警告注意提示（琥珀金图标微光） */
+export function toastWarning(title: string, duration: number = 2000): void {
+  showToast({ title, type: 'warning', duration });
+}
+
+/** 常规信息提示（灵动蓝图标微光） */
+export function toastInfo(title: string, duration: number = 2000): void {
+  showToast({ title, type: 'info', duration });
+}
+
+/** 加载中轻提示（默认带防重复点击蒙层） */
+export function toastLoading(title: string = '加载中...', mask: boolean = true): void {
+  showToast({ title, type: 'loading', duration: 0, mask });
+}
+
+/**
+ * 承接 Promise 异步操作，在原地从 loading 顺滑突变为 success 或 error（参考 Ding 原地形态渐变）
+ */
+export function toastPromise<T>(
+  promise: Promise<T>,
+  messages: ToastPromiseMessages
+): Promise<T> {
+  const loadingText = messages.loading ?? '加载中...';
+  const successText = messages.success ?? '操作成功';
+  const errorText = messages.error ?? '操作失败';
+
+  toastLoading(loadingText, true);
+
+  return promise
+    .then((result: T): T => {
+      toastSuccess(successText);
+      return result;
+    })
+    .catch((err: any): Promise<T> => {
+      toastError(errorText);
+      return Promise.reject(err);
+    });
+}

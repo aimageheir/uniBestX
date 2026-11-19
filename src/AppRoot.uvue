@@ -1,11 +1,14 @@
 <script setup lang="uts">
 import Tabbar from '@/src/tabbar/tabbar.uvue';
+import AppToast from '@/src/components/AppToast/AppToast.uvue';
 import { customTabbarEnable, isPageTabbar, isSinglePageTabbar, selectedTabbarStrategy, syncCurIdxByCurrentPage } from '@/src/tabbar/index.uts';
 import { getCurrentPath, isSamePath } from '@/src/tabbar/core/path.uts';
 import { useThemeStore } from '@/src/store/index.uts';
 import { applyNavbarTheme, getRootThemeStyle } from '@/src/theme/index.uts';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, getCurrentInstance, onMounted, onUnmounted, provide, ref, watch } from 'vue';
 import { updateAvailableHeight } from '@/src/utils/systemInfo/index.uts';
+import { APP_ROOT_CONTEXT_KEY, APP_ROOT_INSTANCE_KEY, getGlobalAppRootContext, setGlobalAppRootContext } from '@/src/hooks/useAppRoot.uts';
+import type { AppRootContext } from '@/src/hooks/useAppRoot.uts';
 // #ifdef VUE3-VAPOR
 import { onBackPress } from '@dcloudio/uni-app';
 import { consumeNavigateBackInterceptorVerdict, interceptNativeBack } from '@/uni_modules/route-bestX/index.uts';
@@ -214,13 +217,43 @@ onMounted(() => {
   uni.$on('tabbarSetHideNavbar', onTabbarSetHideNavbar);
 });
 
+function setHideStatusBar(hide: boolean): void {
+  activeHideStatusBar = hide;
+  doUpdateHeight(null, hide);
+}
+
+function setHideNavbar(hide: boolean): void {
+  activeHideNavbar = hide;
+  doUpdateHeight(hide, null);
+}
+
+const currentInstance = getCurrentInstance();
+const appRootExposed: AppRootContext = {
+  doUpdateHeight,
+  setHideStatusBar,
+  setHideNavbar,
+  showTabbar,
+  themeStyle,
+  themeStore,
+  isCurrentPageTabbar,
+  pageProps: (props ?? {}) as UTSJSONObject
+};
+
 // 卸载时严格移除全局事件监听，彻底消除 IndexKt.emitter 持有页面导致的 Activity 内存泄漏
 onUnmounted(() => {
+  if (getGlobalAppRootContext() === appRootExposed) {
+    setGlobalAppRootContext(null);
+  }
   uni.$off('setHideStatusBar', onSetHideStatusBar);
   uni.$off('setHideNavbar', onSetHideNavbar);
   uni.$off('tabbarSetHideStatusBar', onTabbarSetHideStatusBar);
   uni.$off('tabbarSetHideNavbar', onTabbarSetHideNavbar);
 });
+
+setGlobalAppRootContext(appRootExposed);
+provide(APP_ROOT_INSTANCE_KEY, currentInstance?.proxy ?? currentInstance);
+provide(APP_ROOT_CONTEXT_KEY, appRootExposed);
+defineExpose(appRootExposed);
 </script>
 
 <template>
@@ -237,6 +270,8 @@ onUnmounted(() => {
     </scroll-view>
     <!-- 自定义 TabBar：根据 config.uts 中的 type 配置切换形态（胶囊或标准底座） -->
     <Tabbar v-if="showTabbar" />
+    <!-- 统一高颜值轻提示组件 -->
+    <AppToast />
   </view>
 </template>
 
