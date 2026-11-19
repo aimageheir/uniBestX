@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import JSON5 from 'json5';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildPages, mergePagesJson } from '@/plugins/vite-plugin-uni-pages';
+import { buildPages, commitPages, mergePagesJson } from '@/plugins/vite-plugin-uni-pages';
 
 const tempRoots: string[] = [];
 
@@ -98,5 +98,125 @@ describe('uni-pages subpackage scanning', () => {
     const merged = JSON5.parse(mergePagesJson(existing, state!.output, 'H5', false, [], root));
     const parentPackage = merged.subPackages.find((pkg: any) => pkg.root == 'src/sub');
     expect(parentPackage.pages.map((page: any) => page.path)).toEqual(['rootPage']);
+  });
+
+  it('preserves parent subpackage attributes (e.g. name, independent) in mixed structure during write-back', async () => {
+    const root = createProjectRoot();
+    writePage(root, 'src/pages/index/index.uvue');
+    writePage(root, 'src/sub/rootPage.uvue');
+    writePage(root, 'src/sub/child/child.uvue');
+
+    const configPath = path.join(root, 'pages.config.json');
+    const initialConfig = {
+      pages: [{ path: 'src/pages/index/index' }],
+      subPackages: [
+        {
+          root: 'src/sub',
+          name: 'my-parent-sub',
+          independent: false,
+          pages: [{ path: 'rootPage' }]
+        }
+      ]
+    };
+    fs.writeFileSync(configPath, JSON.stringify(initialConfig, null, 2), 'utf-8');
+
+    const state = await buildPages(
+      {
+        dir: 'src/pages',
+        subPackages: ['src/sub'],
+        subPackageMode: 'subdirs'
+      },
+      {
+        root,
+        isProduction: true
+      }
+    );
+
+    expect(state).not.toBeNull();
+    const parentPkg = state!.scannedSubPkgs.find(pkg => pkg.root === 'src/sub');
+    expect((parentPkg as any)?.name).toBe('my-parent-sub');
+
+    commitPages(state!);
+
+    const updatedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const writtenParent = updatedConfig.subPackages.find((pkg: any) => pkg.root === 'src/sub');
+    expect(writtenParent).toBeDefined();
+    expect(writtenParent.name).toBe('my-parent-sub');
+    expect(writtenParent.independent).toBe(false);
+    expect(writtenParent.pages.map((p: any) => p.path)).toEqual(['rootPage']);
+  });
+
+  it('maintains idempotent _hasMeta across repeated builds even when templates contain definePage text', async () => {
+    const root = createProjectRoot();
+    // 页面内无真实宏声明，仅模板文案中提及 definePage()
+    const indexFile = path.join(root, 'src/pages/index/index.uvue');
+    fs.mkdirSync(path.dirname(indexFile), { recursive: true });
+    fs.writeFileSync(indexFile, '<template><view><text>Help about definePage() usage</text></view></template>\n', 'utf-8');
+
+    // 含有真正宏声明的子页面
+    const rootPageFile = path.join(root, 'src/sub/rootPage.uvue');
+    fs.mkdirSync(path.dirname(rootPageFile), { recursive: true });
+    fs.writeFileSync(
+      rootPageFile,
+      '<script>\ndefinePage({\n  style: { navigationBarTitleText: "Root Page" }\n});\n</script>\n<template><view /></template>\n',
+      'utf-8'
+    );
+
+    // 含有类似 <route-view> 标签但无宏声明的嵌套页面
+    const childFile = path.join(root, 'src/sub/child/child.uvue');
+    fs.mkdirSync(path.dirname(childFile), { recursive: true });
+    fs.writeFileSync(childFile, '<template><view><route-view /></view></template>\n', 'utf-8');
+
+    const configPath = path.join(root, 'pages.config.json');
+    const initialConfig = {
+      pages: [{ path: 'src/pages/index/index' }],
+      subPackages: [
+        {
+          root: 'src/sub',
+          name: 'parent-pkg',
+          pages: [{ path: 'rootPage' }]
+        }
+      ]
+    };
+    fs.writeFileSync(configPath, JSON.stringify(initialConfig, null, 2), 'utf-8');
+
+    const options = {
+      dir: 'src/pages',
+      subPackages: ['src/sub'],
+      subPackageMode: 'subdirs' as const
+    };
+
+    // 首次构建与落盘
+    const state1 = await buildPages(options, { root, isProduction: true });
+    expect(state1).not.toBeNull();
+    commitPages(state1!);
+
+    // 二次构建
+    const state2 = await buildPages(options, { root, isProduction: true });
+    expect(state2).not.toBeNull();
+
+    // 验证 1：主包非宏页面在首次与二次构建中 _hasMeta 保持一致（均为 undefined）
+    expect((state1!.finalPages[0] as any)._hasMeta).toBeUndefined();
+    expect((state2!.finalPages[0] as any)._hasMeta).toBeUndefined();
+
+    // 验证 2：真宏页面在首次与二次构建中 _hasMeta 保持一致（均为 true）
+    const root1 = state1!.scannedSubPkgs.find(p => p.root === 'src/sub')!.pages[0];
+    const root2 = state2!.scannedSubPkgs.find(p => p.root === 'src/sub')!.pages[0];
+    expect((root1 as any)._hasMeta).toBe(true);
+    expect((root2 as any)._hasMeta).toBe(true);
+
+    // 验证 3：伪标签页面在首次与二次构建中 _hasMeta 保持一致（均为 undefined）
+    const child1 = state1!.scannedSubPkgs.find(p => p.root === 'src/sub/child')!.pages[0];
+    const child2 = state2!.scannedSubPkgs.find(p => p.root === 'src/sub/child')!.pages[0];
+    expect((child1 as any)._hasMeta).toBeUndefined();
+    expect((child2 as any)._hasMeta).toBeUndefined();
+
+    // 验证 4：写回 pages.config.json 的分包页面绝无 _hasMeta 内部属性残留
+    const updatedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    for (const pkg of updatedConfig.subPackages) {
+      for (const p of pkg.pages) {
+        expect(p._hasMeta).toBeUndefined();
+      }
+    }
   });
 });
