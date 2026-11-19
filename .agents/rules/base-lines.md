@@ -22,6 +22,7 @@ description: unibestX 最高底线 —— 任何代码都不能违反的框架�
 - **禁隐式 any / 隐式转换**：条件必须是显式布尔；`number` 与 `Array` 必须标注类型；函数参数与返回值必须标注。
 - **基础类型比较只用 `==` / `!=`**，不用 `===`。
 - **`as` 后面不写泛型实例化别名**（`as PageResult<Item>` ✅，`as FooPageResult` ❌，运行期 `ReferenceError`）。
+- **定时器句柄赋值防红线（TS2322）**：当定时器变量显式标注 `: number` 时，`setTimeout` / `setInterval` 赋值必须就地双层强转 `(setTimeout(...) as any) as number` / `(setInterval(...) as any) as number`，消除 VSCode / Volar 因 Node 全局类型污染导致的「不能将类型“Timeout”分配给类型“number”」报错与单层 `as number` 时的 TS2352 报错（详见 Skill 分册 1.26）。
 
 ## 3. 模板与样式底线
 

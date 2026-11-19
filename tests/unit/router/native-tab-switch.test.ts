@@ -278,4 +278,44 @@ describe('interceptNativeTabSwitch', () => {
     expect(guard).toHaveBeenCalledTimes(1);
     expect(guard.mock.calls[0][3]).toBe('navigateBack');
   });
+
+  it('triggers fail and complete callbacks when navigateBackInterceptor fails', () => {
+    vi.spyOn(globalThis as any, 'getCurrentPages').mockReturnValue([
+      { route: 'src/pages/index/index', options: {} },
+      { route: 'src/sub/modalBasicDemo/modalBasicDemo', options: {} }
+    ]);
+    applyRouteFromUrl('/src/sub/modalBasicDemo/modalBasicDemo');
+    const failFn = vi.fn();
+    const completeFn = vi.fn();
+
+    // 1. 深度过大（越界返回失败）
+    const resultInvalidDepth = navigateBackInterceptor.invoke({
+      delta: 5,
+      fail: failFn,
+      complete: completeFn
+    });
+
+    expect(resultInvalidDepth).toBe(false);
+    expect(failFn).toHaveBeenCalledTimes(1);
+    expect(completeFn).toHaveBeenCalledTimes(1);
+    expect(failFn.mock.calls[0][0].code).toBe(201); // BACK_STACK_DEPTH_INVALID
+
+    // 2. 守卫拦截拒绝返回
+    failFn.mockClear();
+    completeFn.mockClear();
+    const guard = vi.fn((_to: any, _from: any, next: any): void => {
+      next(false);
+    });
+    registerBeforeEach(guard as any);
+
+    const resultRejected = navigateBackInterceptor.invoke({
+      delta: 1,
+      fail: failFn,
+      complete: completeFn
+    });
+
+    expect(resultRejected).toBe(false);
+    expect(failFn).toHaveBeenCalledTimes(1);
+    expect(completeFn).toHaveBeenCalledTimes(1);
+  });
 });

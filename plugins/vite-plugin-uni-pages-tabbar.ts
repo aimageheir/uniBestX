@@ -45,6 +45,7 @@ type ParsedTabBarConfig = {
   height?: string;
   midButton?: any;
   glassEffect?: boolean;
+  hostPage?: string;
   list: TabBarItem[];
 };
 
@@ -134,6 +135,7 @@ function parseCustomTabbarConfig(projectRoot: string): ParsedTabBarConfig {
   const spacingMatch = content.match(/spacing\s*:\s*['"`](.*?)['"`]/);
   const heightMatch = content.match(/height\s*:\s*['"`](.*?)['"`]/);
   const glassEffectMatch = content.match(/glassEffect\s*:\s*(true|false)/);
+  const hostPageMatch = content.match(/hostPage\s*:\s*['"`](.*?)['"`]/);
 
   const midButtonMatch = content.match(/midButton\s*:\s*\{([\s\S]*?)\}/);
   let midButton: Record<string, any> | undefined;
@@ -261,6 +263,7 @@ function parseCustomTabbarConfig(projectRoot: string): ParsedTabBarConfig {
     spacing: spacingMatch ? spacingMatch[1].trim() : undefined,
     height: heightMatch ? heightMatch[1].trim() : undefined,
     glassEffect: glassEffectMatch ? glassEffectMatch[1] === 'true' : undefined,
+    hostPage: hostPageMatch ? hostPageMatch[1].trim() : undefined,
     midButton,
     list: listResult
   };
@@ -400,8 +403,9 @@ function runTabBar(state: PagesBuildState): void {
         tabPagePaths.add(normalizePagePath(parsedConfig.midButton.pagePath));
       }
 
+      const customHost = parsedConfig.hostPage;
       const homePage = output.pages.find(page => page.type === 'home' || page.isHome === true);
-      const hostPath = normalizePagePath(homePage?.path ?? output.pages[0]?.path ?? '');
+      const hostPath = normalizePagePath(customHost || homePage?.path || output.pages[0]?.path || '');
       if (hostPath !== '') {
         const virtualPages: PageConfig[] = [];
         output.pages = output.pages.filter((page) => {

@@ -1,4 +1,8 @@
 <script setup lang="uts">
+import { onMounted, ref } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
+import { useAppRoot } from '@/src/hooks/useAppRoot.uts';
+import { useToast } from '@/src/components/AppToast/useToast.uts';
 import {
   curIdx,
   resolveTabIndexByKey,
@@ -14,6 +18,7 @@ import IdeSection from './components/IdeSection.uvue';
 import FeatureGrid from './components/FeatureGrid.uvue';
 import EngineeringSection from './components/EngineeringSection.uvue';
 import RouterDemoSection from './components/RouterDemoSection.uvue';
+import ToastDemoSection from './components/ToastDemoSection.uvue';
 import ToolLibSection from './components/ToolLibSection.uvue';
 import DevWorkflowGuide from './components/DevWorkflowGuide.uvue';
 import IndexFooter from './components/IndexFooter.uvue';
@@ -88,6 +93,9 @@ const {
   onHide: onIndexHide
 } = useTabPage();
 
+/** 引入高颜值统一 Toast 组合式 Hook */
+const toast = useToast();
+
 // 监听 navbar 自定义下拉刷新事件（在 enablePullDownRefresh: true 且处于当前 Tab 时生效）
 onNavbarPullDownRefresh(() => {
   // 所有已挂载 Tab 都会收到全局刷新事件，只处理当前激活的首页
@@ -102,18 +110,40 @@ onNavbarPullDownRefresh(() => {
       return;
     }
     console.log('首页刷新成功');
+    toast.success('首页刷新成功');
   }, 1000);
 });
 
 // 与普通页面一致的首次进入 / 显示 / 隐藏生命周期
-// onMounted
+/** 方式 1：公共能力 Hook（推荐：在 setup / onLoad 期间即可同步获取公共实例方法、对象与属性，无需等待挂载） */
+const appRoot = useAppRoot();
+
+/** 方式 2：模板 Ref（需配合 template 声明 root="appRootRef"，在 onMounted 挂载完成后即可获取组件实例） */
+const appRootRef = ref<ComponentPublicInstance | null>(null);
+
+// 页面加载阶段：此时组件 DOM 与模板尚未渲染完成，AppRoot 尚未挂载，因此为 null
 onIndexLoad(() => {
-  console.log('onIndexLoad', '首页挂载了👋');
+  console.log('onIndexLoad', '首页加载了👋');
+  console.log(' - onLoad 阶段 AppRoot 尚未挂载 (此时为 null):', appRoot, appRootRef.value);
+});
+
+// onMounted 阶段：组件与 DOM 真正挂载完成，AppRoot 实例已就绪
+onMounted(() => {
+  console.log('onMounted', '首页挂载完成🎉');
+  console.log(' - 此时通过 appRootRef.value 访问 AppRoot 实例:', appRootRef.value);
+  const mountedAppRoot = useAppRoot();
+  console.log(' - 挂载后通过 useAppRoot() 访问公共上下文:', mountedAppRoot);
+  if (mountedAppRoot != null) {
+    console.log('   * 是否展示 TabBar:', mountedAppRoot.showTabbar.value);
+    console.log('   * 根主题样式变量:', mountedAppRoot.themeStyle.value);
+  }
+  // 使用独立的 useToast() 组合式 Hook
+  toast.info('欢迎体验 unibestX');
 });
 
 // onPageShow
 onIndexShow(() => {
-  console.log('onIndexShow', '首页显示了👀');
+  console.log('onIndexShow', '首页显示了👀', 'AppRoot 实例:', appRootRef.value);
 });
 
 // onPageHide
@@ -123,7 +153,7 @@ onIndexHide(() => {
 });
 </script>
 
-<template>
+<template root="appRootRef">
   <TabPageHost>
     <div class="flex flex-col w-full">
       <!-- 1. 顶部 Header、环境信息卡片与简介 -->
@@ -132,7 +162,10 @@ onIndexHide(() => {
       <!-- 2. 🧭 路由跳转示例（useRouter / useRoute） -->
       <RouterDemoSection />
 
-      <!-- 3. 🤖 内置 unibestX-skill（AI 极速开发与 Token 节流引擎） -->
+      <!-- 3. ✨ 自定义高颜值 Toast 示例（useToast · AppToast） -->
+      <ToastDemoSection />
+
+      <!-- 4. 🤖 内置 unibestX-skill（AI 极速开发与 Token 节流引擎） -->
       <AiSkillSection />
 
       <!-- 4. 推荐 IDE 与开发环境 -->

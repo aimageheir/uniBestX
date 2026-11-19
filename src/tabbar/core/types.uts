@@ -138,6 +138,8 @@ export type TabBarConfig = {
   backgroundRepeat?: string;
   /** tabbar 上红点颜色 */
   redDotColor?: string;
+  /** 模式 4 自定义宿主页面路径，未指定时默认取 list[0].pagePath 或 'src/pages/index/index' */
+  hostPage?: string;
   /** tab 列表配置（最少2个、最多5个） */
   list: CustomTabBarItem[];
 };

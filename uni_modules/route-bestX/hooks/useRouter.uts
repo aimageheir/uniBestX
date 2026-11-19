@@ -185,14 +185,23 @@ export class Router {
   /**
    * 返回上一页 / 前 n 页
    *
-   * @param delta 返回的层数，默认 1；超出页面栈层数时回到首页
+   * @param deltaOrOptions 返回的层数，默认 1；或传入选项对象（包含 delta、success、fail、complete）
    * @param intercept 是否走拦截器与路由守卫，默认 true；传入 false 时跳过拦截器直接放行
    */
-  back(delta: number = 1, intercept: boolean = true): void {
+  back(deltaOrOptions: any = 1, intercept: boolean = true): void {
     if (!intercept) {
       setBypassInterceptorOnce(true);
     }
-    uni.navigateBack({ delta });
+    if (typeof deltaOrOptions == 'number') {
+      const d = deltaOrOptions as number;
+      uni.navigateBack({ delta: d });
+      return;
+    }
+    if (deltaOrOptions != null && typeof deltaOrOptions == 'object') {
+      uni.navigateBack(deltaOrOptions as any);
+      return;
+    }
+    uni.navigateBack({ delta: 1 });
   }
 
   /**
