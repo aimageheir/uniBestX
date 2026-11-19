@@ -79,6 +79,24 @@ export const tabbarList: CustomTabBarItem[] = reactive(normalizeList());
 export const curIdx = ref(0);
 
 /**
+ * 获取模式 4 宿主页面的绝对路径
+ * 优先级：customTabbarConfig.hostPage -> tabbarList[0].pagePath -> '/src/pages/index/index'
+ */
+export function getTabbarHostPage(): string {
+  const customHost = customTabbarConfig.hostPage;
+  if (customHost != null && customHost != '') {
+    return customHost.startsWith('/') ? customHost : `/${customHost}`;
+  }
+  if (tabbarList.length > 0) {
+    const first = tabbarList[0].pagePath;
+    if (first != '') {
+      return first.startsWith('/') ? first : `/${first}`;
+    }
+  }
+  return '/src/pages/index/index';
+}
+
+/**
  * 当前激活 Tab 的自定义标题（单页 TabBar 模式下由激活的 TabContent 响应式更新，供宿主 Navbar 联动）
  */
 export const activeTabTitle = ref('');

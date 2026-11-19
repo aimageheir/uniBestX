@@ -7,26 +7,65 @@
 <h1 align="center">unibestX</h1>
 
 <p align="center">
-  面向 <strong>uni-app X</strong> 的现代开发模板<br>
-  Vue 3 · UTS · Vite 5 · Tailwind CSS · Vapor / VDOM
+  <strong>面向 uni-app X 的现代工业级全端开发模板 · 开箱即用</strong><br>
+  一套代码直通 <b>iOS · 安卓 · 鸿蒙 · Web · 微信小程序 · 支付宝小程序</b><br>
+  Vue 3 组合式 API · UTS 严格类型 · Vite 5 · Tailwind CSS · Vapor / VDOM
 </p>
 
 <p align="center">
-  <a href="https://github.com/aimageheir/uniBestX/stargazers"><img src="https://img.shields.io/github/stars/aimageheir/uniBestX?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/aimageheir/uniBestX/stargazers"><img src="https://img.shields.io/github/stars/aimageheir/uniBestX?style=flat-square&color=2563eb" alt="Stars"></a>
   <a href="https://github.com/aimageheir/uniBestX/network/members"><img src="https://img.shields.io/github/forks/aimageheir/uniBestX?style=flat-square" alt="Forks"></a>
   <a href="https://github.com/aimageheir/uniBestX/blob/main/LICENSE"><img src="https://img.shields.io/github/license/aimageheir/uniBestX?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/Platforms-iOS%20|%20Android%20|%20Harmony%20|%20Web%20|%20MiniProgram-10b981?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/Node.js-%3E%3D22.22.2-green?style=flat-square" alt="Node.js">
   <img src="https://img.shields.io/badge/pnpm-%3E%3D10.0.0-orange?style=flat-square" alt="pnpm">
   <img src="https://img.shields.io/badge/HBuilderX-%3E%3D5.26-blue?style=flat-square" alt="HBuilderX">
 </p>
 
 <p align="center">
-  <a href="https://aimageheir.github.io/uniBestX/">在线演示</a> ·
-  <a href="https://aimageheir.github.io/uniBestX/docs/">在线文档</a> ·
-  <a href="https://github.com/aimageheir/uniBestX">GitHub</a> ·
-  <a href="https://gitee.com/htwoO-cq/uni-best-x">Gitee</a> ·
-  <a href="https://github.com/aimageheir/uniBestX/issues">问题反馈</a>
+  <a href="https://aimageheir.github.io/uniBestX/"><strong>🌐 在线演示</strong></a> ·
+  <a href="https://aimageheir.github.io/uniBestX/docs/"><strong>📖 在线文档</strong></a> ·
+  <a href="https://github.com/aimageheir/uniBestX"><strong>💻 GitHub</strong></a> ·
+  <a href="https://gitee.com/htwoO-cq/uni-best-x"><strong>🇨🇳 Gitee 镜像</strong></a> ·
+  <a href="https://github.com/aimageheir/uniBestX/issues"><strong>💬 问题反馈</strong></a>
 </p>
+
+---
+
+> [!TIP]
+> **🚀 如果你熟悉 Vue 全家桶，你可以极速上手本项目！**  
+> unibestX 内置了与 **`vue-router`（`useRoute` / `useRouter` / 守卫）**、**`Pinia`**、**`Axios`**、**`Tailwind CSS`** 等对标相等的原生 API 与工具链。  
+> **全面支持 iOS、安卓、鸿蒙、Web、微信小程序、支付宝小程序，开箱即用！**
+
+---
+
+## 🌟 核心高光速览
+
+### 📱 1. 全端原生覆盖 · 真正开箱即用
+
+无需为每个平台重写业务逻辑或手搓脚手架，一套规范代码直接编译到主流终端：
+
+| 平台端 | 底层技术 / 编译链路 | 开箱即用体验 |
+| :--- | :--- | :--- |
+| **🍎 iOS** | Swift 原生编译 | 原生液态玻璃效果、原生页面栈导航、极致流畅启动 |
+| **🤖 安卓 (Android)** | Kotlin 原生编译 | 沉浸式状态栏、硬件物理返回键精确拦截、高刷原生渲染 |
+| **🌺 鸿蒙 (HarmonyOS)** | ArkTS 原生编译 | 全量消除 ArkTS 模板解析深坑，满足鸿蒙生态严苛标准 |
+| **🌐 Web / H5** | Vite 5 + Vapor / VDOM | 浏览器地址栏双向同步、Vue Router 历史记录平滑互通 |
+| **💚 微信小程序** | 小程序原生运行时 | 自动分包编排、生命周期完全对齐、开箱即用接口层 |
+| **💙 支付宝小程序** | 小程序原生运行时 | 针对宿主页与 TabBar 容器深度解耦，无生命周期冲突 |
+
+### ⚡ 2. Vue 全家桶同款体验 · 零学习成本
+
+保留 Web 工程师最习惯的开发手感，所有核心能力均提供等价对标 API：
+
+| Vue 全家桶能力 | unibestX 内置等价实现 | 特性亮点 |
+| :--- | :--- | :--- |
+| **`vue-router`** | `route-bestX` (`useRoute` / `useRouter`) | 支持 `push()` / `replace()` / `back()`，内置流水线责任链守卫与深度返回拦截 |
+| **`pinia`** | `Pinia` / `x-pinia-s` 双模式 | 语法与原生 Pinia 完全一致，按运行环境自动适配极致轻量状态库 |
+| **`axios`** | `request-bestX` (`http` / 异步 Hooks) | 支持全局拦截器、Token 自动刷新、缓存重放、防抖重试与 SSE 流式请求 |
+| **`tailwindcss`** | 内置移动端原子化 CSS 引擎 | 原生级原子类支持，预置高品质设计令牌，支持亮暗色主题自由切换 |
+
+---
 
 ## 为什么要有这个项目？
 
@@ -51,11 +90,12 @@
   - **独创的 Skill 规范知识库体系**：内置结构化 `unibestX-skill`（**1 个顶层入口 + 11 个领域专业分册**），全方位涵盖 UTS 语法、Tailwind 样式、跨端运行时报错、API 契约冻结、路由编排与前端美学设计；
   - **精细的 Agent 规则与代码门禁**：结合自研 `eslint-plugin-uts` 与项目底线规则（Always On），给 AI 戴上“工程化护栏”，让 AI 从“放飞自我瞎写”变成“严格按照生产级规范输出代码”，从源头杜绝屎山代码与编译报错；
   - **极致的 Token 控制与 Vibe Coding 体验**：通过精确分册索引与任务复杂度分级门槛，杜绝 AI 盲目全量扫描上百万行依赖文件，大幅缩短往返纠错时间并节约 Token。
-- 🧠 **抹平前端开发者心智负担**：全面沿用 Web 工程师最熟悉的 Vue 3 组合式 API 开发体验。底层提前踩平对象字面量赋值、隐式类型转换、鸿蒙 ArkTS 模板解析异常等数百个底层转译深坑，让前端开发者零障碍迈入原生跨端时代。
+- 🧠 **抹平前端开发者心智负担（极速上手 Vue 全家桶体验）**：如果你熟悉 Vue 全家桶的话，可以很快上手本项目！项目内置了与 `vue-router`（`useRoute`、`useRouter`、路由守卫）、`Pinia` 状态管理、`Axios`（请求拦截器与异步状态 hooks）等 API 对标相等的原生实现，全面沿用 Web 工程师最熟悉的 Vue 3 组合式 API 开发体验。底层提前踩平对象字面量赋值、隐式类型转换、鸿蒙 ArkTS 模板解析异常等数百个底层转译深坑，让前端开发者零障碍迈入原生跨端时代。
 
 ## 特性
 
-- 一套代码运行到 Android、iOS、鸿蒙、H5、微信小程序和支付宝小程序。
+- **全端覆盖，开箱即用**：一套代码支持 iOS、安卓、鸿蒙、Web、微信小程序、支付宝小程序，开箱即用。
+- **Vue 全家桶同款体验**：如果你熟悉 Vue 全家桶的话，可以很快上手本项目，项目内置与 `useRoute`、`useRouter`、`vue-router` 路由守卫、`Pinia`、`Axios` 等能力相等的 API 实现。
 - 5 种 TabBar 运行模式、2 种 UI 形态，并支持原生液态玻璃。
 - 内置 `route-bestX` 路由守卫与 `request-bestX` 请求、缓存和异步状态 hooks。
 - Pinia / `x-pinia-s` 双模式状态管理，按运行环境自动切换。

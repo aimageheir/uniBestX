@@ -9,8 +9,44 @@ import type {
   RouteTarget
 } from '@/uni_modules/route-bestX/index.uts';
 import { buildGuardContext } from '@/uni_modules/route-bestX/index.uts';
+import { maskSensitive } from '@/src/utils/report/error.uts';
 import { guardMaintenance } from './guardMaintenance.uts';
 import { guardLogin } from './guardLogin.uts';
+
+/**
+ * 对路由 URL 或合成值进行敏感信息脱敏（包括 query 中的 token/password/secret 等和手机号）
+ */
+function sanitizeUrl(rawUrl: string): string {
+  if (rawUrl == '') {
+    return '';
+  }
+  return maskSensitive(rawUrl);
+}
+
+/**
+ * 对 query Map 严格按照白名单脱敏处理（抹除敏感 key 的具体值）
+ */
+function sanitizeQuery(query: Map<string, string>): Map<string, string> {
+  const sanitized = new Map<string, string>();
+  query.forEach((val, key) => {
+    const k = key.toLowerCase();
+    if (
+      k.includes('token')
+      || k.includes('password')
+      || k.includes('pwd')
+      || k.includes('secret')
+      || k.includes('auth')
+      || k.includes('ticket')
+      || k.includes('credential')
+    ) {
+      sanitized.set(key, '****');
+    }
+    else {
+      sanitized.set(key, maskSensitive(val));
+    }
+  });
+  return sanitized;
+}
 
 /**
  * ## 业务前置守卫规则队列（责任链流水线模式）
@@ -57,9 +93,12 @@ function runGuardsPipeline(to: RouteTarget, from: RouteTarget, next: NextFunctio
 export function setupRouteGuards(router: Router): void {
   // 1. 注册全局前置守卫（责任链流水线）
   router.beforeEach((to: RouteTarget, from: RouteTarget, next: NextFunction, api?: string): any | null => {
+    const sanitizedTo = sanitizeUrl(to.fullPath != '' ? to.fullPath : to.path);
+    const sanitizedFrom = sanitizeUrl(from.fullPath != '' ? from.fullPath : from.path);
+    const sanitizedQuery = sanitizeQuery(to.query);
     // #ifdef H5 || WEB
     console.log(
-      `%c[Router beforeEach]%c 路由跳转 %c to: %c${to.fullPath != '' ? to.fullPath : to.path} %c from: %c${from.fullPath != '' ? from.fullPath : from.path} %c api: %c${api != null ? api : ''} %c name: %c${to.name != null ? to.name : ''}\n%c meta: %o %c query: %o %c params: %o`,
+      `%c[Router beforeEach]%c 路由跳转 %c to: %c${sanitizedTo} %c from: %c${sanitizedFrom} %c api: %c${api != null ? api : ''} %c name: %c${to.name != null ? to.name : ''}\n%c query: %o`,
       'background: #2563eb; color: #ffffff; padding: 2px 6px; border-radius: 3px; font-weight: bold;',
       'color: #2563eb; font-weight: bold;',
       'color: #64748b; font-weight: bold;',
@@ -70,22 +109,14 @@ export function setupRouteGuards(router: Router): void {
       'color: #8b5cf6; font-weight: bold;',
       'color: #64748b; font-weight: bold;',
       'color: #06b6d4; font-weight: bold;',
-      'color: #3b82f6; font-weight: bold;',
-      to.meta,
       'color: #f59e0b; font-weight: bold;',
-      to.query,
-      'color: #10b981; font-weight: bold;',
-      to.params
+      sanitizedQuery
     );
     // #endif
     // #ifndef H5 || WEB
     console.log(
-      `\x1B[34m[Router beforeEach]\x1B[0m 路由跳转 to: \x1B[32m${to.fullPath != '' ? to.fullPath : to.path}\x1B[0m from: \x1B[33m${from.fullPath != '' ? from.fullPath : from.path}\x1B[0m api: \x1B[35m${api != null ? api : ''}\x1B[0m name: \x1B[36m${to.name != null ? to.name : ''}\x1B[0m\n  \x1B[34mmeta:\x1B[0m`,
-      to.meta,
-      `\x1B[33mquery:\x1B[0m`,
-      to.query,
-      `\x1B[32mparams:\x1B[0m`,
-      to.params
+      `\x1B[34m[Router beforeEach]\x1B[0m 路由跳转 to: \x1B[32m${sanitizedTo}\x1B[0m from: \x1B[33m${sanitizedFrom}\x1B[0m api: \x1B[35m${api != null ? api : ''}\x1B[0m name: \x1B[36m${to.name != null ? to.name : ''}\x1B[0m\n  \x1B[33mquery:\x1B[0m`,
+      sanitizedQuery
     );
     // #endif
     runGuardsPipeline(to, from, next, api);
@@ -93,11 +124,29 @@ export function setupRouteGuards(router: Router): void {
   });
 
   // 2. 注册全局后置钩子（页面跳转完成、数据统计与埋点上报）
-  router.afterEach((_to: RouteTarget, _from: RouteTarget, failure?: any | null) => {
+  router.afterEach((to: RouteTarget, from: RouteTarget, failure?: any | null) => {
     if (failure != null) {
       console.warn('[Router afterEach] 导航中断/异常:', failure);
       return;
     }
+    const sanitizedTo = sanitizeUrl(to.fullPath != '' ? to.fullPath : to.path);
+    const sanitizedFrom = sanitizeUrl(from.fullPath != '' ? from.fullPath : from.path);
+    // #ifdef H5 || WEB
+    console.log(
+      `%c[Router afterEach]%c 路由完成 %c to: %c${sanitizedTo} %c from: %c${sanitizedFrom}`,
+      'background: #10b981; color: #ffffff; padding: 2px 6px; border-radius: 3px; font-weight: bold;',
+      'color: #10b981; font-weight: bold;',
+      'color: #64748b; font-weight: bold;',
+      'color: #10b981; font-weight: bold;',
+      'color: #64748b; font-weight: bold;',
+      'color: #ea580c; font-weight: bold;'
+    );
+    // #endif
+    // #ifndef H5 || WEB
+    console.log(
+      `\x1B[32m[Router afterEach]\x1B[0m 路由完成 to: \x1B[32m${sanitizedTo}\x1B[0m from: \x1B[33m${sanitizedFrom}\x1B[0m`
+    );
+    // #endif
   });
 
   // 3. 注册全局路由错误捕获回调

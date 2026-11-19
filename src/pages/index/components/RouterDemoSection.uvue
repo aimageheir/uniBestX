@@ -44,7 +44,7 @@ function pushBasicById(): void {
 
 /** 对象形态：中文参数由路由层统一编码，目标页拿到的是解码态 */
 function pushBasicWithText(): void {
-  router.push({ path: BASIC_PAGE, query: { id: 1002, title: '路由参数', scene: 'object-query' } });
+  router.push({ path: BASIC_PAGE, query: { id: 1002, title: '路由参数', scene: 'object-query', password: '1234' } });
 }
 
 /** 字符串形态：query 串要自己拼，值里有中文 / 空格时请改用对象形态 */
@@ -131,7 +131,7 @@ function pushModalDemoWithQuery(): void {
 
         <view class="p-[10px] rounded-[10px] bg-[#ffffff] border-[1px] border-solid border-[#e2e8f0] flex flex-row items-center mb-[8px]">
           <view class="flex-1 flex flex-col mr-[8px]">
-            <text class="text-[11px] font-bold text-[#1e293b]" style="font-family: monospace;">query: { id: 1002, title: '路由参数' }</text>
+            <text class="text-[11px] font-bold text-[#1e293b]" style="font-family: monospace;">query: { id: 1002, title: '路由参数',password:"1234" }</text>
             <text class="text-[10px] leading-[15px] text-[#94a3b8] mt-[2px]">对象形态 · 中文值由路由层编码，目标页拿到解码态</text>
           </view>
           <view class="px-[12px] h-[30px] flex flex-row items-center justify-center rounded-[6px] bg-[#7c3aed] active:opacity-90" @click="pushBasicWithText">
