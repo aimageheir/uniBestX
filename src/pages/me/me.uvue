@@ -1,5 +1,8 @@
 <script setup lang="uts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
+import { useAppRoot } from '@/src/hooks/useAppRoot.uts';
+import { useToast } from '@/src/components/AppToast/useToast.uts';
 import { useTokenStore, useUserStore } from '@/src/store/index.uts';
 import { LOGIN_PAGE } from '@/src/utils/auth/toLoginPage.uts';
 import { curIdx, resolveTabIndexByKey, switchTabbar, useTabPage, useTabPageShell } from '@/src/tabbar/index.uts';
@@ -29,6 +32,7 @@ const {
 } = useTabPage();
 
 const router = useRouter();
+const toast = useToast();
 
 // 监听 navbar 自定义下拉刷新事件（在 enablePullDownRefresh: true 且处于当前 Tab 时生效）
 onNavbarPullDownRefresh(() => {
@@ -48,11 +52,24 @@ onNavbarPullDownRefresh(() => {
 });
 
 // 与普通页面一致的首次进入 / 显示 / 隐藏生命周期
+/** 方式 1：公共能力 Hook（推荐：在 setup / onLoad 期间即可同步获取公共实例方法、对象与属性，无需等待挂载） */
+const appRoot = useAppRoot();
+
+/** 方式 2：模板 Ref（需配合 template 声明 root="appRootRef"，在 onMounted 挂载完成后即可获取） */
+const appRootRef = ref<ComponentPublicInstance | null>(null);
+
 onMeLoad(() => {
   // 💡 模式4的映射关系中，/me.uvue 映射到的实际页面路由是/tab/index，这是因为tabbar/index.uts中定义了映射关系
   // 💡 模式4 useRoute 获取的还是index的
   // 🔔 模式4，tabbar切换时，不会走beforeEach，因为是index，是根容器, 如需拦截请自行处理src/tabbar/adapters/tab-navigation.uts，一般业务用不动，无需修改
-  console.log('onMeLoad', '我的 Tab 挂载了👋');
+  console.log('onMeLoad', '我的 Tab 加载了👋');
+  console.log(' - 通过 useAppRoot() 同步获取公共实例能力 (onLoad 无需等待挂载):', appRoot);
+  console.log(' - 模板 ref 在 onLoad 阶段尚未 Mount (此时为 null):', appRootRef.value);
+});
+
+onMounted(() => {
+  console.log('onMounted', '我的 Tab 挂载完成🎉');
+  console.log(' - 此时通过 appRootRef.value 访问 AppRoot 实例:', appRootRef.value);
 });
 
 onMeShow(() => {
@@ -110,10 +127,7 @@ function handleLogout() {
       if (res.confirm) {
         tokenStore.clearToken();
         userStore.clearUserInfo();
-        uni.showToast({
-          title: '退出登录成功',
-          icon: 'success'
-        });
+        toast.success('退出登录成功');
         // 退出后留在「我的」页面（me 页无需登录，未登录态自身渲染）
         // 统一走 switchTabbar 回到本页：mode 4 只切激活索引不跳路由，mode 0-3 按各自策略 switchTab / redirectTo
         setTimeout(() => {
@@ -125,7 +139,7 @@ function handleLogout() {
 }
 </script>
 
-<template>
+<template root="appRootRef">
   <view class="flex flex-col items-center px-[16px] pt-[8px]">
     <!-- 头部卡片：用户头像及状态 -->
     <view class="w-full bg-white rounded-[12px] px-[20px] py-[20px] mb-[16px] flex flex-col items-center">

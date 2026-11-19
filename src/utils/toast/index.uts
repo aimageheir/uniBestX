@@ -16,43 +16,41 @@ export function registerToast(toastInstance: ComponentPublicInstance) {
 /**
  * 全局轻提示与加载等待工具 (Toast & Loading)
  *
- * 统一轻提示体验，防御原生 uni.showToast 默认大对勾乌龙，并提供快捷 Loading 封装。
+ * 统一轻提示体验：底层桥接 AppRoot 统一挂载的高颜值灵动岛 AppToast 组件，
+ * 提供成功、失败、警告、加载中等丰富形态，跨端样式 100% 统一。
  */
 
+import {
+  hideToast,
+  showToast,
+  toastError,
+  toastInfo,
+  toastLoading,
+  toastSuccess,
+  toastWarning,
+  useToast
+} from '@/src/components/AppToast/index.uts';
+import type { ToastOptions, ToastPosition, ToastType, UseToastReturn } from '@/src/components/AppToast/index.uts';
+
+export {
+  hideToast,
+  showToast,
+  toastError,
+  toastInfo,
+  toastLoading,
+  toastSuccess,
+  toastWarning,
+  useToast
+};
+export type { ToastOptions, ToastPosition, ToastType, UseToastReturn };
+
 /**
- * 普通文本轻提示（无图标，时长 1500ms）
+ * 普通轻提示（无图标，时长 2000ms）
  * @param message 提示文本
+ * @param duration 显示时长（默认 2000ms）
  */
-export function toast(message: string): void {
-  uni.showToast({
-    title: message,
-    icon: 'none',
-    duration: 1500
-  });
-}
-
-/**
- * 成功轻提示（带成功对勾图标，时长 1500ms）
- * @param message 成功提示文本
- */
-export function toastSuccess(message: string): void {
-  uni.showToast({
-    title: message,
-    icon: 'success',
-    duration: 1500
-  });
-}
-
-/**
- * 失败错误轻提示（带错误图标，时长 1500ms）
- * @param message 错误提示文本
- */
-export function toastError(message: string): void {
-  uni.showToast({
-    title: message,
-    icon: 'error',
-    duration: 1500
-  });
+export function toast(message: string, duration: number = 2000): void {
+  showToast({ title: message, type: 'text', duration });
 }
 
 /**
@@ -61,15 +59,16 @@ export function toastError(message: string): void {
  * @param mask 是否显示透明蒙层，默认为 true
  */
 export function showLoading(title: string = '加载中...', mask: boolean = true): void {
-  uni.showLoading({
-    title,
-    mask
-  });
+  toastLoading(title, mask);
 }
 
 /**
  * 关闭全局加载中提示框
  */
 export function hideLoading(): void {
-  uni.hideLoading();
+  hideToast();
+  try {
+    uni.hideLoading();
+  }
+  catch {}
 }

@@ -1,4 +1,4 @@
-import { curIdx, isPageTabbar, setCurIdx, setCurIdxByPath, tabbarList } from './state.uts';
+import { curIdx, getTabbarHostPage, isPageTabbar, setCurIdx, setCurIdxByPath, tabbarList } from './state.uts';
 import { readTabPageFullPath, setTabPageUrl, syncTabPageHostUrl } from './tab-page.uts';
 import { isNativeTabbar, isSinglePageTabbar, needHideNativeTabbar, selectedTabbarStrategy, TABBAR_STRATEGY_MAP } from './strategy.uts';
 import { customTabbarConfig } from '../adapters/config.uts';
@@ -25,8 +25,9 @@ function readCurrentTabFullPath(): string {
     const pages = getCurrentPages();
     if (pages.length > 0) {
       const topRoute = pages[pages.length - 1].route ?? '';
-      if (topRoute != '' && !isSamePath(topRoute, '/pages/index/index')) {
-        if (routeState.fullPath != '' && !isSamePath(routeState.path, '/pages/index/index')) {
+      const hostPage = getTabbarHostPage();
+      if (topRoute != '' && !isSamePath(topRoute, hostPage)) {
+        if (routeState.fullPath != '' && !isSamePath(routeState.path, hostPage)) {
           return routeState.fullPath;
         }
         return topRoute.startsWith('/') ? topRoute : `/${topRoute}`;
@@ -157,60 +158,91 @@ function restoreSwitchTabQueryOnH5(url: string): void {
  */
 function performSwitchTabbar(url: string, api: string = 'switchTabbar'): void {
   const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
-  // 模式 4 没有真实页面切换：把路由 URL 中的 query 写入目标 Tab 的虚拟路由，
-  // 这样 useTabPage() 里的 route.query 仍与普通页面 push({ query }) 的行为一致。
   if (isSinglePageTabbar) {
-    setTabPageUrl(normalizedUrl);
-    applyRouteFromUrl(normalizedUrl);
-  }
-  setCurIdxByPath(normalizedUrl);
-  if (isSinglePageTabbar) {
-    // H5 下同步宿主页地址栏（?tab=basic&id=1），保证刷新后仍停留在当前 Tab
-    syncTabPageHostUrl(url);
+    const hostPage = getTabbarHostPage();
+    let isAtHost = false;
+    let pages: any[] = [];
     try {
-      const pages = getCurrentPages();
+      pages = getCurrentPages();
       if (pages.length > 0) {
         const currentRoute = pages[pages.length - 1].route as string;
-        const normalizedRoute = currentRoute.startsWith('/') ? currentRoute : `/${currentRoute}`;
-        if (normalizedRoute == '/pages/index/index' || normalizedRoute == '/src/pages/index/index') {
-          return;
-        }
-
-        // 检查页面栈中是否已有宿主首页（如从首页通过 router.push 压栈进入登录页等子页面）
-        let hostIndex = -1;
-        for (let i = 0; i < pages.length; i++) {
-          const r = pages[i].route as string;
-          const nr = r.startsWith('/') ? r : `/${r}`;
-          if (nr == '/pages/index/index' || nr == '/src/pages/index/index') {
-            hostIndex = i;
-            break;
-          }
-        }
-
-        if (hostIndex >= 0) {
-          // 宿主页已在页面栈中：通过 navigateBack 退回已有宿主页，销毁上层子页面，
-          // 彻底防止 redirectTo 导致宿主页重复堆叠、子组件生命周期回调成倍累加！
-          const delta = pages.length - 1 - hostIndex;
-          markSilentNavigateBack(1);
-          uni.navigateBack({
-            delta,
-            success: () => {
-              syncTabPageHostUrl(url);
-            }
-          });
-          return;
-        }
+        isAtHost = isSamePath(currentRoute, hostPage);
+      }
+      else {
+        isAtHost = true;
       }
     }
-    catch { }
+    catch {
+      isAtHost = true;
+    }
+
+    // 已经在宿主页内（无真实页面切换）：直接同步虚拟路由和激活索引
+    if (isAtHost) {
+      setTabPageUrl(normalizedUrl);
+      applyRouteFromUrl(normalizedUrl);
+      setCurIdxByPath(normalizedUrl);
+      syncTabPageHostUrl(url);
+      return;
+    }
+
+    // 当前在子页面：需退回宿主页。为了防止返回失败导致状态不一致，不可提前修改激活项/query/fullPath
+    const prevCurIdx = curIdx.value;
+    const prevFullPath = routeState.fullPath;
+    const prevTabPageUrl = (curIdx.value >= 0 && curIdx.value < tabbarList.length) ? readTabPageFullPath(tabbarList[curIdx.value].pagePath) : '';
+
+    const applyState = () => {
+      setTabPageUrl(normalizedUrl);
+      applyRouteFromUrl(normalizedUrl);
+      setCurIdxByPath(normalizedUrl);
+      syncTabPageHostUrl(url);
+    };
+
+    const rollbackState = () => {
+      setCurIdx(prevCurIdx);
+      if (prevFullPath != '') {
+        applyRouteFromUrl(prevFullPath);
+      }
+      if (prevTabPageUrl != '') {
+        setTabPageUrl(prevTabPageUrl);
+      }
+    };
+
+    let hostIndex = -1;
+    for (let i = 0; i < pages.length; i++) {
+      const r = pages[i].route as string;
+      if (isSamePath(r, hostPage)) {
+        hostIndex = i;
+        break;
+      }
+    }
+
+    if (hostIndex >= 0) {
+      const delta = pages.length - 1 - hostIndex;
+      markSilentNavigateBack(1);
+      uni.navigateBack({
+        delta,
+        success: () => {
+          applyState();
+        },
+        fail: (_err: any) => {
+          rollbackState();
+        }
+      });
+      return;
+    }
+
     uni.reLaunch({
-      url: '/src/pages/index/index',
+      url: hostPage,
       success: (_res: any) => {
-        syncTabPageHostUrl(url);
+        applyState();
+      },
+      fail: (_err: any) => {
+        rollbackState();
       }
     });
     return;
   }
+  setCurIdxByPath(normalizedUrl);
   if (selectedTabbarStrategy == TABBAR_STRATEGY_MAP.CUSTOM_TABBAR_WITHOUT_NATIVE || selectedTabbarStrategy == TABBAR_STRATEGY_MAP.NO_TABBAR) {
     // 模式 0/3 通过 router 进入时，Router.switchTab() 已执行过本次守卫；
     // redirectTo 的底层拦截器只需放行，避免同一次导航重复触发 beforeEach。

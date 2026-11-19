@@ -1,0 +1,63 @@
+import { inject } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
+
+/**
+ * AppRoot 全局根骨架组件对外暴露的公共实例方法、对象与属性契约
+ */
+export type AppRootContext = {
+  /** 触发重新计算页面可用高度 */
+  doUpdateHeight: (overrideHideNavbar?: boolean | null, overrideHideStatusBar?: boolean | null) => void;
+  /** 动态设置状态栏显隐并联动重新计算高度 */
+  setHideStatusBar: (hide: boolean) => void;
+  /** 动态设置导航栏显隐并联动重新计算高度 */
+  setHideNavbar: (hide: boolean) => void;
+  /** 是否展示底部自定义 TabBar */
+  showTabbar: ComputedRef<boolean>;
+  /** 当前页面是否是 TabBar 页面 */
+  isCurrentPageTabbar: Ref<boolean>;
+  /** 根容器响应式主题变量样式 */
+  themeStyle: ComputedRef<UTSJSONObject>;
+  /** 主题状态管理 Store 实例 */
+  themeStore: any;
+  /** 当前 AppRoot 页面注入参数配置 */
+  pageProps: UTSJSONObject;
+};
+
+export const APP_ROOT_CONTEXT_KEY = 'AppRootContext';
+export const APP_ROOT_INSTANCE_KEY = 'AppRootInstance';
+
+let activeAppRootContext: AppRootContext | null = null;
+
+export function setGlobalAppRootContext(ctx: AppRootContext | null): void {
+  activeAppRootContext = ctx;
+}
+
+export function getGlobalAppRootContext(): AppRootContext | null {
+  return activeAppRootContext;
+}
+
+/**
+ * 获取 AppRoot 根骨架公共实例上下文
+ *
+ * - 若在 AppRoot 内部子代组件中调用，通过 Vue 依赖注入（inject）获取；
+ * - 若在宿主外层组件且 AppRoot 已完成初始化，返回全局活跃实例上下文；
+ * - 若当前尚未挂载或不存在 AppRoot 环境，直接返回 null（不做虚假兜底，没有就是没有）。
+ *
+ * @example
+ * ```uts
+ * import { useAppRoot } from '@/src/hooks/useAppRoot.uts';
+ *
+ * const appRoot = useAppRoot();
+ * if (appRoot != null) {
+ *   console.log('TabBar 显隐:', appRoot.showTabbar.value);
+ *   appRoot.setHideNavbar(true);
+ * }
+ * ```
+ */
+export function useAppRoot(): AppRootContext | null {
+  const fromInject = inject<AppRootContext | null>(APP_ROOT_CONTEXT_KEY, null);
+  if (fromInject != null) {
+    return fromInject;
+  }
+  return activeAppRootContext;
+}

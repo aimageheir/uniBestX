@@ -1,0 +1,49 @@
+/**
+ * Toast 轻提示类型
+ */
+export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading' | 'text';
+
+/**
+ * Toast 呈现位置
+ */
+export type ToastPosition = 'top' | 'center' | 'bottom';
+
+/**
+ * Toast 参数选项
+ */
+export type ToastOptions = {
+  /** 提示标题/文本 */
+  title: string;
+  /** 提示类型（默认 'text'） */
+  type?: ToastType;
+  /** 持续展示时长（毫秒，默认 2000ms；设为 0 时不自动关闭，多用于 loading） */
+  duration?: number;
+  /** 弹出位置（默认 'top'，在顶部状态栏下方以灵动胶囊形式悬浮） */
+  position?: ToastPosition;
+  /** 自定义图标名称（uni-icons 图标名）或 emoji 文本 */
+  icon?: string;
+  /** 是否显示全屏轻微防穿透蒙层（默认 false；loading 模式下默认为 true） */
+  mask?: boolean;
+};
+
+/**
+ * 内部响应式状态
+ */
+export type ToastState = {
+  visible: boolean;
+  title: string;
+  type: ToastType;
+  position: ToastPosition;
+  icon: string;
+  mask: boolean;
+  immediate: boolean;
+};
+
+/**
+ * Promise 异步状态提示文案（Ding 风格原地变形 Morphing）
+ */
+export type ToastPromiseMessages = {
+  loading?: string;
+  success?: string;
+  error?: string;
+};

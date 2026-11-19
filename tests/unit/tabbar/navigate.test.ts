@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { curIdx, setCurIdx } from '@/src/tabbar/core/state.uts';
+import { curIdx, getTabbarHostPage, setCurIdx } from '@/src/tabbar/core/state.uts';
+import { customTabbarConfig } from '@/src/tabbar/adapters/config.uts';
 import { readTabPageQuery, resetTabPageQueries, setTabPageUrl } from '@/src/tabbar/core/tab-page.uts';
 import { switchTabbar } from '@/src/tabbar/core/navigate.uts';
 import type { TabNavigationContext, TabNavigationNext } from '@/src/tabbar/core/tab-navigation.uts';
@@ -95,6 +96,78 @@ describe('switchTabbar', () => {
       delta: 1
     }));
     expect(window.location.hash).toBe('#/?tab=me');
+  });
+
+  it('does not change active tab, query, or fullPath in mode-4 when navigateBack fails', () => {
+    if (!isSinglePageTabbar) {
+      return;
+    }
+    setCurIdx(0);
+    applyRouteFromUrl('/src/pages/index/index?from=init');
+    window.location.hash = '#/src/sub/auth/login';
+
+    const navigateBack = (globalThis as any).uni.navigateBack as ReturnType<typeof vi.fn>;
+    const originalNavigateBack = navigateBack.getMockImplementation();
+    vi.spyOn(globalThis as any, 'getCurrentPages').mockReturnValue([
+      { route: 'src/pages/index/index' },
+      { route: 'src/sub/auth/login' }
+    ]);
+    navigateBack.mockImplementation((options: any): void => {
+      // 模拟返回失败并触发 fail 回调
+      if (typeof options?.fail == 'function') {
+        options.fail(new Error('navigateBack rejected'));
+      }
+    });
+
+    switchTabbar('/src/pages/me/me?role=admin');
+
+    if (originalNavigateBack != null) {
+      navigateBack.mockImplementation(originalNavigateBack);
+    }
+    else {
+      navigateBack.mockImplementation((): void => {});
+    }
+
+    // 激活项、query、fullPath 保持一致，不被提前改为目标 Tab
+    expect(curIdx.value).toBe(0);
+    expect(routeState.fullPath).toBe('/src/pages/index/index?from=init');
+    expect(routeState.query.get('from')).toBe('init');
+    expect(routeState.query.get('role') ?? null).toBeNull();
+  });
+
+  it('supports custom hostPage in mode-4 instead of fixed index page', () => {
+    if (!isSinglePageTabbar) {
+      return;
+    }
+    (customTabbarConfig as any).hostPage = 'src/pages/home/home';
+    expect(getTabbarHostPage()).toBe('/src/pages/home/home');
+
+    window.location.hash = '#/src/sub/auth/login';
+    const navigateBack = (globalThis as any).uni.navigateBack as ReturnType<typeof vi.fn>;
+    const originalNavigateBack = navigateBack.getMockImplementation();
+    vi.spyOn(globalThis as any, 'getCurrentPages').mockReturnValue([
+      { route: 'src/pages/home/home' },
+      { route: 'src/sub/auth/login' }
+    ]);
+    navigateBack.mockImplementation((options: any): void => {
+      if (typeof options?.success == 'function') {
+        options.success({});
+      }
+    });
+
+    switchTabbar('/src/pages/me/me');
+
+    if (originalNavigateBack != null) {
+      navigateBack.mockImplementation(originalNavigateBack);
+    }
+    else {
+      navigateBack.mockImplementation((): void => {});
+    }
+
+    expect(navigateBack).toHaveBeenCalledWith(expect.objectContaining({
+      delta: 1
+    }));
+    delete (customTabbarConfig as any).hostPage;
   });
 
   it('passes source, target, query and trigger to the navigation guard', () => {

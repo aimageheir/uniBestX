@@ -1051,6 +1051,8 @@ export const navigateBackInterceptor: Interceptor = {
     }
     const pages = getCurrentPages();
     let delta = 1;
+    let optFail: ((err: any) => void) | null = null;
+    let optComplete: ((res: any) => void) | null = null;
     if (options != null) {
       // #ifdef APP
       try {
@@ -1058,6 +1060,12 @@ export const navigateBackInterceptor: Interceptor = {
         const d = opt.delta;
         if (d != null && d > 0) {
           delta = d;
+        }
+        if (opt.fail != null) {
+          optFail = opt.fail;
+        }
+        if (opt.complete != null) {
+          optComplete = opt.complete;
         }
       }
       catch { }
@@ -1068,6 +1076,12 @@ export const navigateBackInterceptor: Interceptor = {
         const d = optMap.delta as number | null;
         if (d != null && d > 0) {
           delta = d;
+        }
+        if (optMap['fail'] != null) {
+          optFail = optMap['fail'] as ((err: any) => void);
+        }
+        if (optMap['complete'] != null) {
+          optComplete = optMap['complete'] as ((res: any) => void);
         }
       }
       catch { }
@@ -1089,6 +1103,12 @@ export const navigateBackInterceptor: Interceptor = {
       );
       runOnErrorHandlers(err, null, resolveFromRouteTarget());
       runAfterEachHooks(createEmptyRouteTarget(), resolveFromRouteTarget(), err);
+      if (optFail != null) {
+        optFail(err);
+      }
+      if (optComplete != null) {
+        optComplete(err);
+      }
       return false;
     }
     rootBackExitPendingTime = 0;
@@ -1121,11 +1141,39 @@ export const navigateBackInterceptor: Interceptor = {
         const cachedVerdict = readGuardVerdict(navigateBackGuardVerdict, url, ROUTE_GUARD_DEDUPE_WINDOW, 'navigateBack');
         if (cachedVerdict != null) {
           markNavigateBackInterceptorVerdict(cachedVerdict.allowed);
+          if (!cachedVerdict.allowed) {
+            const err = createRouterError(
+              ROUTER_ERROR_CODE.GUARD_REJECTED as number,
+              buildRouteTargetFromResolvedUrl(url, 'navigateBack'),
+              resolveFromRouteTarget(),
+              'navigateBack'
+            );
+            if (optFail != null) {
+              optFail(err);
+            }
+            if (optComplete != null) {
+              optComplete(err);
+            }
+          }
           return cachedVerdict.allowed;
         }
         const allowed = allowNavigation(url, 'navigateBack');
         navigateBackGuardVerdict = createGuardVerdict(url, allowed, 'navigateBack');
         markNavigateBackInterceptorVerdict(allowed);
+        if (!allowed) {
+          const err = createRouterError(
+            ROUTER_ERROR_CODE.GUARD_REJECTED as number,
+            buildRouteTargetFromResolvedUrl(url, 'navigateBack'),
+            resolveFromRouteTarget(),
+            'navigateBack'
+          );
+          if (optFail != null) {
+            optFail(err);
+          }
+          if (optComplete != null) {
+            optComplete(err);
+          }
+        }
         return allowed;
       }
     }

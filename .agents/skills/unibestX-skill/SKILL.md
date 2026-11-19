@@ -272,7 +272,7 @@ uni-app X 采用 UTS (uni type script) 语言与原生渲染引擎，跨端直�
 
 > 📖 **完整 55 条红线清单与 30+ 常见排查矩阵已收录于 [references/0-redlines.md](references/0-redlines.md)**。代码生成前与交付前必须逐条核验。
 
-### Top 12 最致命高频自检清单（速查）
+### Top 14 最致命高频自检清单（速查）
 
 在宣告代码修改完成前，请先快速自检以下最高频的崩溃/编译错误风险点：
 
@@ -289,6 +289,7 @@ uni-app X 采用 UTS (uni type script) 语言与原生渲染引擎，跨端直�
 - [ ] **11. 页面跳转走 `useRouter()`，取路由走 `useRoute()`**：严禁原生 `uni.navigateTo`，严禁 `onLoad((options) => ...)`（详见分册 8）。
 - [ ] **12. 新增页面必须接入 `src/api/<module>/` 业务模块接口层**：页面与组件内严禁 `ref([...])` 硬编码假数据（详见分册 6）。
 - [ ] **13. 严禁裸写 HTML 标签与禁止文本嵌套**：虽配置了转换插件，但未经开发者明确要求严禁手写 `div`、`span`、`i`、`em`、`b` 等，一律使用 uni 原生 `<view>` 与 `<text>`；所有行内标签一律转为 `<text>` 且**严禁 `<text>` 内部嵌套 `<text>`**，多色/不同字重文本必须用 `<view class="flex flex-row flex-wrap">` 平铺并列兄弟 `<text>` 节点（详见分册 2.4）。
+- [ ] **14. 定时器句柄赋值防红线（TS2322）**：当定时器变量显式标注 `: number` 时，`setTimeout` / `setInterval` 赋值必须就地双层强转 `(setTimeout(...) as any) as number` / `(setInterval(...) as any) as number`，消除 VSCode / Volar 因 Node 全局类型污染导致的「不能将类型“Timeout”分配给类型“number”」报错与单层 `as number` 时的 TS2352 报错（详见分册 1.26 与 `references/0-redlines.md` 第 43 条）。
 
 ---
 

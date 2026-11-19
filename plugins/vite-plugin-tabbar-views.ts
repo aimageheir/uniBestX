@@ -355,7 +355,6 @@ function mergeEquivalentViewVariants(variants: ViewEntryVariant[]): ViewEntryVar
  */
 export function generateTabViews(projectRoot: string, options: TabbarViewsOptions = {}): void {
   const configFile = options.configFile ?? 'src/tabbar/config.uts';
-  const hostPage = (options.hostPage ?? 'src/pages/index/index').replace(/\\/g, '/').replace(/^\//, '').replace(/\.(uvue|vue)$/, '');
   const configPath = path.resolve(projectRoot, configFile);
   if (!fs.existsSync(configPath)) {
     return;
@@ -369,6 +368,10 @@ export function generateTabViews(projectRoot: string, options: TabbarViewsOption
   const content = rawContent
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/\/\/.*$/gm, '');
+
+  const hostPageMatch = content.match(/hostPage\s*:\s*['"`](.*?)['"`]/);
+  const resolvedHost = options.hostPage ?? (hostPageMatch ? hostPageMatch[1].trim() : 'src/pages/index/index');
+  const hostPage = resolvedHost.replace(/\\/g, '/').replace(/^\//, '').replace(/\.(uvue|vue)$/, '');
 
   const listMatch = content.match(/list\s*:\s*\[([\s\S]*?)\]/);
   if (!listMatch) {
