@@ -88,6 +88,10 @@ const maskClass = computed((): string => {
   return isActive.value ? 'toast-mask--active' : '';
 });
 
+const wrapperClass = computed((): string => {
+  return isMaskVisible.value ? 'toast-wrapper--mask' : '';
+});
+
 const spinnerStyle = computed((): string => {
   return `transform: rotate(${rotateDeg.value}deg);`;
 });
@@ -158,16 +162,22 @@ function onMaskClick(): void {
     hideToast();
   }
 }
+
+function onMaskTouch(): void {
+  // 拦截 iOS 触摸穿透：消费 touchstart/touchmove 事件链，禁止穿透到底层页面
+}
 </script>
 
 <template>
-  <view v-if="isRendered" class="toast-wrapper">
+  <view v-if="isRendered" class="toast-wrapper" :class="wrapperClass">
     <!-- 全屏防穿透轻微蒙层（平滑淡入淡出） -->
     <view
       v-if="isMaskVisible"
       class="toast-mask"
       :class="maskClass"
-      @click="onMaskClick"
+      @click.stop="onMaskClick"
+      @touchstart.stop="onMaskTouch"
+      @touchmove.stop="onMaskTouch"
     />
 
     <!-- 顶部动态岛悬浮定位（Ding 风格弹簧物理入场与离场） -->
@@ -302,6 +312,10 @@ function onMaskClick(): void {
   pointer-events: none;
 }
 
+.toast-wrapper--mask {
+  pointer-events: auto;
+}
+
 .toast-mask {
   position: absolute;
   top: 0;
@@ -311,6 +325,7 @@ function onMaskClick(): void {
   background-color: rgba(0, 0, 0, 0.25);
   opacity: 0;
   pointer-events: auto;
+  cursor: pointer;
   transition-property: opacity;
   transition-duration: 220ms;
   transition-timing-function: ease-out;
