@@ -117,6 +117,14 @@
             <image v-else-if="lcn.name == 'img' && imgSrc(lcn) != ''" :src="imgSrc(lcn)" :style="imgStyle(lcn)" mode="widthFix" @tap="onImgTap(lcn)" />
             <text v-else-if="lcn.name == 'a'" class="mp-a" :style="linkStyle(lcn)" @tap="onLinkTap(lcn)">{{ flatText(lcn) }}</text>
             <text v-else-if="isInline(lcn.name ?? '')" :class="chainClass(lcn)" :style="inlineStyle(lcn)">{{ flatText(lcn) }}</text>
+            <!-- 列表项内嵌表格 -->
+            <view v-else-if="lcn.name == 'table'" style="display:flex;flex-direction:column;width:100%;margin:8px 0">
+              <view v-for="(row, ri) in (lcn.children ?? [])" :key="ri" style="display:flex;flex-direction:row;width:100%">
+                <view v-for="(cell, cidx) in (row.children ?? [])" :key="cidx" :style="cellStyle(cell, (row.children ?? []).length)">
+                  <text :class="cell.name == 'th' ? 'mp-b' : ''">{{ flatText(cell) }}</text>
+                </view>
+              </view>
+            </view>
             <template v-else-if="lcn.name == 'div' || lcn.name == 'p'">
               <template v-for="(sub, subi) in (lcn.children ?? [])" :key="subi">
                 <text v-if="sub.type == 'text'" :class="nodeClass(sub)" :style="nodeStyle(sub)">{{ sub.text }}</text>
@@ -132,9 +140,9 @@
         </view>
       </view>
       <!-- 块级容器：Web 端块级内联流式折行，原生端 Flex wrap 换行（见 unibestX-skill 2.17） -->
-      <view v-else-if="(n.children ?? []).length > 0" class="_mp_block">
+      <view v-else-if="(n.children ?? []).length > 0" class="_mp_block" :style="blockStyle(n)">
         <template v-for="(cn, ci) in (n.children ?? [])" :key="ci">
-          <text v-if="cn.type == 'text'" :class="'_mp_inline ' + nodeClass(cn)" :style="nodeStyle(cn)">{{ cn.text }}</text>
+          <text v-if="cn.type == 'text'" :class="'_mp_inline ' + nodeClass(cn)" :style="nodeStyle(cn, n)">{{ cn.text }}</text>
           <text v-else-if="cn.name == 'br'">{{ '\n' }}</text>
           <image v-else-if="cn.name == 'img' && imgSrc(cn) != ''" :src="imgSrc(cn)" :style="imgStyle(cn)" mode="widthFix" @tap="onImgTap(cn)" />
           <text v-else-if="cn.name == 'a'" class="_mp_inline mp-a" :style="linkStyle(cn)" @tap="onLinkTap(cn)">{{ flatText(cn) }}</text>
@@ -161,13 +169,29 @@
           <view v-else-if="cn.name == 'video' && videoSrc(cn) != ''" style="display:flex;flex-direction:column;width:100%">
             <video :src="videoSrc(cn)" :controls="true" style="width:100%;height:180px;border-radius:8px" />
           </view>
+          <!-- 嵌套表格：支持在 div / blockquote / section 内渲染表格行列 -->
+          <view v-else-if="cn.name == 'table'" style="display:flex;flex-direction:column;width:100%;margin:8px 0">
+            <view v-for="(row, ri) in (cn.children ?? [])" :key="ri" style="display:flex;flex-direction:row;width:100%">
+              <view v-for="(cell, cidx) in (row.children ?? [])" :key="cidx" :style="cellStyle(cell, (row.children ?? []).length)">
+                <text :class="cell.name == 'th' ? 'mp-b' : ''">{{ flatText(cell) }}</text>
+              </view>
+            </view>
+          </view>
           <!-- 嵌套块级容器（如 p, div 等）：独占一行并支持行内混排 -->
-          <view v-else-if="cn.name == 'div'" class="_mp_block">
+          <view v-else-if="cn.name == 'div'" class="_mp_block" :style="blockStyle(cn)">
             <template v-for="(sub, subi) in (cn.children ?? [])" :key="subi">
-              <text v-if="sub.type == 'text'" :class="'_mp_inline ' + nodeClass(sub)" :style="nodeStyle(sub)">{{ sub.text }}</text>
+              <text v-if="sub.type == 'text'" :class="'_mp_inline ' + nodeClass(sub)" :style="nodeStyle(sub, cn)">{{ sub.text }}</text>
               <text v-else-if="sub.name == 'br'">{{ '\n' }}</text>
               <image v-else-if="sub.name == 'img' && imgSrc(sub) != ''" :src="imgSrc(sub)" :style="imgStyle(sub)" mode="widthFix" @tap="onImgTap(sub)" />
               <text v-else-if="sub.name == 'a'" class="_mp_inline mp-a" :style="linkStyle(sub)" @tap="onLinkTap(sub)">{{ flatText(sub) }}</text>
+              <!-- 容器内嵌套表格 -->
+              <view v-else-if="sub.name == 'table'" style="display:flex;flex-direction:column;width:100%;margin:8px 0">
+                <view v-for="(row, ri) in (sub.children ?? [])" :key="ri" style="display:flex;flex-direction:row;width:100%">
+                  <view v-for="(cell, cidx) in (row.children ?? [])" :key="cidx" :style="cellStyle(cell, (row.children ?? []).length)">
+                    <text :class="cell.name == 'th' ? 'mp-b' : ''">{{ flatText(cell) }}</text>
+                  </view>
+                </view>
+              </view>
               <text v-else-if="isInline(sub.name ?? '')" :class="'_mp_inline ' + chainClass(sub)" :style="inlineStyle(sub)">{{ flatText(sub) }}</text>
               <text v-else class="_mp_inline">{{ flatText(sub) }}</text>
             </template>
@@ -710,14 +734,55 @@ function nodeClass(n: HtmlNode): string {
   return attrs.getString('class') ?? ''
 }
 
-function nodeStyle(n: HtmlNode): string {
+function nodeStyle(n: HtmlNode, parentNode: HtmlNode | null = null): string {
+  let s = ''
+  const attrs = n.attrs
+  if (attrs != null) {
+    const c = attrs.getString('_color')
+    if (c != null && c.length > 0) {
+      s += 'color:' + c + ';'
+    }
+  }
+  if (parentNode != null && parentNode.attrs != null) {
+    const align = parentNode.attrs!.getString('_align')
+    if (align != null && align.length > 0) {
+      s += 'text-align:' + align + ';'
+      if (align == 'center' || align == 'right') {
+        s += 'width:100%;'
+      }
+    }
+  }
+  return s
+}
+
+function blockStyle(n: HtmlNode): string {
   const attrs = n.attrs
   if (attrs == null) return ''
-  const c = attrs.getString('_color')
-  if (c != null && c.length > 0) {
-    return 'color:' + c
+  let s = ''
+  const align = attrs.getString('_align')
+  if (align != null && align.length > 0) {
+    s += 'text-align:' + align + ';'
+    if (align == 'center') {
+      s += 'justify-content:center;'
+    } else if (align == 'right') {
+      s += 'justify-content:flex-end;'
+    } else if (align == 'left') {
+      s += 'justify-content:flex-start;'
+    }
   }
-  return ''
+  const rawStyle = attrs.getString('style')
+  if (rawStyle != null && rawStyle.length > 0) {
+    const list = rawStyle.split(';')
+    for (let i = 0; i < list.length; i++) {
+      const decl = list[i].split(':')
+      if (decl.length < 2) continue
+      const k = decl[0].trim().toLowerCase()
+      // text-align 与 text-indent 已分别由 _align 及全角空格精准接管
+      if (k == 'text-align' || k == 'text-indent') continue
+      s += list[i] + ';'
+    }
+  }
+  return s
 }
 
 function imgStyle(n: HtmlNode): string {
@@ -860,6 +925,7 @@ function cleanEmptyTextNodes(nodes: HtmlNode[]): HtmlNode[] {
         continue
       }
     }
+    applyBlockTextIndent(node)
     result.push(node)
   }
   return result
@@ -1121,24 +1187,67 @@ function extractColor(attrs: UTSJSONObject): void {
   }
 }
 
+function extractBlockAlign(attrs: UTSJSONObject): void {
+  const style = attrs.getString('style')
+  if (style == null) return
+  const list: string[] = style.split(';')
+  for (let i = 0; i < list.length; i++) {
+    const decl: string[] = list[i].split(':')
+    if (decl.length < 2) continue
+    const key = decl[0].trim().toLowerCase()
+    if (key == 'text-align') {
+      const val = decl[1].trim().toLowerCase()
+      if (val == 'center' || val == 'right' || val == 'left' || val == 'justify') {
+        attrs['_align'] = val
+      }
+      return
+    }
+  }
+}
+
+function applyBlockTextIndent(node: HtmlNode): void {
+  const attrs = node.attrs
+  if (attrs == null) return
+  const style = attrs.getString('style')
+  if (style == null) return
+  if (style.toLowerCase().indexOf('text-indent') == -1) return
+
+  const children = node.children ?? []
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]
+    if (child.type == 'text') {
+      const rawText = child.text ?? ''
+      if (rawText.length > 0 && !rawText.startsWith('\u3000') && !rawText.startsWith('　')) {
+        child.text = '\u3000\u3000' + rawText
+      }
+      break
+    } else if ((child.children ?? []).length > 0) {
+      applyBlockTextIndent(child)
+      break
+    }
+  }
+}
+
 function findMatchingClose(html: string, start: number, tagName: string): number {
   let depth = 1
   let i = start
-  const openStr = '<' + tagName
-  const closeStr = '</' + tagName + '>'
+  const lower = html.toLowerCase()
+  const lowerTag = tagName.toLowerCase()
+  const openStr = '<' + lowerTag
+  const closeStr = '</' + lowerTag
 
-  while (i < html.length) {
-    const openPos = html.indexOf(openStr, i)
-    const closePos = html.indexOf(closeStr, i)
+  while (i < lower.length) {
+    const openPos = lower.indexOf(openStr, i)
+    const closePos = lower.indexOf(closeStr, i)
 
     if (closePos == -1) return -1
 
     if (openPos != -1 && openPos < closePos) {
-      const afterOpen = html.indexOf('>', openPos)
+      const afterOpen = lower.indexOf('>', openPos)
       if (afterOpen != -1) {
-        const afterOpenTag = html.substring(openPos + 1, afterOpen)
+        const afterOpenTag = lower.substring(openPos + 1, afterOpen)
         const afterOpenName = afterOpenTag.split(' ')[0].split('\t')[0].toLowerCase()
-        if (afterOpenName == tagName) {
+        if (afterOpenName == lowerTag) {
           depth += 1
           i = afterOpen + 1
           continue
@@ -1148,43 +1257,65 @@ function findMatchingClose(html: string, start: number, tagName: string): number
 
     depth -= 1
     if (depth == 0) return closePos
-    i = closePos + closeStr.length
+    const closeGt = lower.indexOf('>', closePos)
+    if (closeGt == -1) return -1
+    i = closeGt + 1
   }
   return -1
 }
 
 function parseTable(html: string): HtmlNode[] {
   const rows: HtmlNode[] = []
+  const lower = html.toLowerCase()
   let i = 0
-  while (i < html.length) {
-    const trS = html.indexOf('<tr', i)
+  while (i < lower.length) {
+    const trS = lower.indexOf('<tr', i)
     if (trS == -1) break
-    const trGt = html.indexOf('>', trS)
+    const trGt = lower.indexOf('>', trS)
     if (trGt == -1) break
-    const trE = html.indexOf('</tr>', trGt)
+    const trE = lower.indexOf('</tr>', trGt)
     if (trE == -1) break
 
     const trInner = html.substring(trGt + 1, trE)
+    const trLower = trInner.toLowerCase()
     const cells: HtmlNode[] = []
     let ci = 0
-    while (ci < trInner.length) {
-      const tdS = trInner.indexOf('<t', ci)
+    while (ci < trLower.length) {
+      const tdS = trLower.indexOf('<t', ci)
       if (tdS == -1) break
-      const ch = trInner.charAt(tdS + 2).toLowerCase()
-      const cellTag = (ch == 'h') ? 'th' : ((ch == 'd') ? 'td' : '')
+      if (tdS + 2 >= trLower.length) break
+      const ch = trLower.charAt(tdS + 2)
+      let cellTag = ''
+      if (ch == 'h' || ch == 'd') {
+        if (tdS + 3 < trLower.length) {
+          const nextChar = trLower.charAt(tdS + 3)
+          if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '>' || nextChar == '/') {
+            cellTag = ch == 'h' ? 'th' : 'td'
+          }
+        } else {
+          cellTag = ch == 'h' ? 'th' : 'td'
+        }
+      }
       if (cellTag.length == 0) {
         ci = tdS + 2
         continue
       }
-      const tdGt = trInner.indexOf('>', tdS)
+      const tdGt = trLower.indexOf('>', tdS)
       if (tdGt == -1) break
-      const tdE = trInner.indexOf('</' + cellTag + '>', tdGt)
-      if (tdE == -1) break
-      const text = stripAllTags(trInner.substring(tdGt + 1, tdE))
+      const closeTag = '</' + cellTag
+      const tdCloseS = trLower.indexOf(closeTag, tdGt)
+      if (tdCloseS == -1) break
+      const tdCloseGt = trLower.indexOf('>', tdCloseS)
+      if (tdCloseGt == -1) break
+
+      const rawCell = trInner.substring(tdGt + 1, tdCloseS)
+      const text = cleanText(decodeEntities(stripAllTags(rawCell)))
       cells.push({ name: cellTag, children: [{ type: 'text', text } as HtmlNode] } as HtmlNode)
-      ci = tdE + cellTag.length + 3
+      ci = tdCloseGt + 1
     }
-    rows.push({ name: 'tr', children: cells } as HtmlNode)
+    if (cells.length > 0) {
+      rows.push({ name: 'tr', children: cells } as HtmlNode)
+    }
     i = trE + 5
   }
   return rows
@@ -1235,6 +1366,7 @@ function parseHtml(html: string): HtmlNode[] {
     const attrs = parseAttrs(tag)
     // 行内文字颜色的来源：style="color:…" 在这里被捞出来存进 attrs._color（见 extractColor）
     extractColor(attrs)
+    extractBlockAlign(attrs)
 
     if (txt.length > 0) {
       const t = cleanText(txt)
@@ -1343,6 +1475,7 @@ function parseHtml(html: string): HtmlNode[] {
       node.name = 'div'
     }
 
+    applyBlockTextIndent(node)
     result.push(node)
     i = closePos + closeStr.length
   }

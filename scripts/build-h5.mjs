@@ -18,7 +18,8 @@ import { detectIde } from './sync-hbuilderx.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pagesFile = path.join(root, 'pages.json');
-const backupFile = path.join(root, '.pages.json.bak');
+const legacyBackupFile = path.join(root, '.pages.json.bak');
+const taskBackupFile = path.join(root, `.pages.json.task-${process.pid}-${Date.now()}.bak`);
 const commonEnvFile = path.join(root, '.env');
 const testEnvFile = path.join(root, '.env.test');
 const prodLocalFile = path.join(root, '.env.production.local');
@@ -140,52 +141,152 @@ setupEnv();
 // ---------- 静态图片自动化压缩优化（带智能缓存与阈值判定，已最优则无感跳过） ----------
 await runOptimizer();
 
+// ---------- 任务拥有专属备份（解决 R16：恢复本次任务拥有的备份，杜绝内存合成旧备份） ----------
 const hadPages = fs.existsSync(pagesFile);
+let ownedPagesContent = null;
+let hasOwnedPagesBackup = false;
+
 if (hadPages) {
-  fs.copyFileSync(pagesFile, backupFile);
+  try {
+    ownedPagesContent = fs.readFileSync(pagesFile, 'utf8');
+    fs.writeFileSync(taskBackupFile, ownedPagesContent, 'utf8');
+    hasOwnedPagesBackup = true;
+  }
+  catch (err) {
+    console.error('⚠️ 创建本次任务 pages.json 备份失败:', err);
+    hasOwnedPagesBackup = false;
+  }
+}
+
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  }
+  catch {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      void 0;
+    }
+  }
 }
 
 let pagesRestored = false;
 function restorePages() {
   if (pagesRestored) {
-    return;
+    return true;
   }
-  pagesRestored = true;
 
-  if (fs.existsSync(backupFile)) {
-    fs.copyFileSync(backupFile, pagesFile);
-    fs.rmSync(backupFile, { force: true });
+  // 1. 若本次任务启动前本就不存在 pages.json（未拥有备份）
+  if (!hadPages) {
+    try {
+      if (fs.existsSync(pagesFile)) {
+        fs.rmSync(pagesFile, { force: true });
+      }
+      if (fs.existsSync(taskBackupFile)) {
+        fs.rmSync(taskBackupFile, { force: true });
+      }
+      pagesRestored = true;
+      return true;
+    }
+    catch (err) {
+      console.error('⚠️ 清理新生成的 pages.json 失败:', err);
+      return false;
+    }
   }
-  else if (!hadPages && fs.existsSync(pagesFile)) {
-    fs.rmSync(pagesFile, { force: true });
+
+  // 2. 本次任务拥有备份，必须且仅恢复本次任务拥有的内容（解决 R16：避免外部旧备份与内存脏合成）
+  if (!hasOwnedPagesBackup || ownedPagesContent == null) {
+    console.warn('⚠️ 本次任务未持有有效的专属 pages.json 备份，跳过恢复以避免脏覆盖');
+    return false;
   }
+
+  // 重试最多 3 次（解决 R16：首次复制失败后第二次清理仍不重试）
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      // 优先从专属磁盘备份复制；若备份文件被外部误删，使用本次任务原始快照直接写回
+      if (fs.existsSync(taskBackupFile)) {
+        fs.copyFileSync(taskBackupFile, pagesFile);
+      }
+      else {
+        fs.writeFileSync(pagesFile, ownedPagesContent, 'utf8');
+      }
+
+      if (fs.existsSync(pagesFile)) {
+        if (fs.existsSync(taskBackupFile)) {
+          fs.rmSync(taskBackupFile, { force: true });
+        }
+        if (fs.existsSync(legacyBackupFile)) {
+          fs.rmSync(legacyBackupFile, { force: true });
+        }
+        // 关键点：物理写盘成功后才标记完成
+        pagesRestored = true;
+        return true;
+      }
+    }
+    catch (err) {
+      lastErr = err;
+      if (attempt < 3) {
+        sleepSync(100);
+      }
+    }
+  }
+
+  // 3 次重试仍未成功：保持 pagesRestored = false，允许后续清理（如 exit 钩子）继续重试！
+  console.error('❌ 恢复 pages.json 失败（已重试 3 次）:', lastErr);
+  return false;
 }
 
 let envRestored = false;
 function restoreEnv() {
   if (envRestored) {
-    return;
+    return true;
   }
-  envRestored = true;
 
   if (createdTempEnv && fs.existsSync(prodLocalFile)) {
-    fs.rmSync(prodLocalFile, { force: true });
-    console.log('🧹 已自动清理临时测试环境文件（.env.production.local），工作区已恢复默认');
+    try {
+      fs.rmSync(prodLocalFile, { force: true });
+      envRestored = true;
+      console.log('🧹 已自动清理临时测试环境文件（.env.production.local），工作区已恢复默认');
+      return true;
+    }
+    catch (err) {
+      console.error('⚠️ 清理临时测试环境文件失败:', err);
+      return false;
+    }
   }
+  envRestored = true;
+  return true;
 }
 
+let hasCleanupFailed = false;
 function cleanup() {
+  let ok = true;
   try {
-    restorePages();
+    const pagesOk = restorePages();
+    if (!pagesOk) {
+      ok = false;
+    }
   }
   catch (err) {
+    ok = false;
     console.error('⚠️ 恢复 pages.json 时出现异常:', err);
   }
   try {
-    restoreEnv();
+    const envOk = restoreEnv();
+    if (!envOk) {
+      ok = false;
+    }
   }
   catch (err) {
+    ok = false;
     console.error('⚠️ 恢复环境变量时出现异常:', err);
+  }
+
+  // 解决 R16：失败不误标完成
+  if (!ok) {
+    hasCleanupFailed = true;
+    process.exitCode = 1;
   }
 }
 
@@ -276,4 +377,8 @@ try {
 }
 finally {
   cleanup();
+  if (hasCleanupFailed) {
+    console.error('❌ 警告：H5 构建后工作区恢复失败，失败不误标完成，本次构建判定失败');
+    process.exitCode = 1;
+  }
 }
