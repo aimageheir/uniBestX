@@ -67,6 +67,8 @@ const html: string = `
 <p style="font-size: 14px; color: #333333; line-height: 1.8; margin-bottom: 10px;">
   感谢您的理解与配合，祝您早日康复！
 </p>
+
+<p style="text-align: center;">测试标题</p><p style="text-align: left; text-indent: 2em;">测试首行缩进字符是啊实打实的的大叔大婶打撒按时打算打撒的Ada实打实打撒收到Ada大赛</p>
 `;
 
 function onLinkTap(attrs: UTSJSONObject): void {
