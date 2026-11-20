@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import type { Plugin } from 'vite';
 import { loadPlatformPagesJson } from './pages-json-util';
+import { readTabbarPageEntries } from './vite-plugin-tabbar-views';
 
 /** 读取 VITE_TABBAR_MODE；优先环境变量，其次项目根目录 .env */
 function getTabbarMode(projectRoot: string): string {
@@ -55,6 +56,8 @@ const ROOT_PROP_KEYS: string[] = [
   'style',
   'isTabbar'
 ];
+
+const TABBAR_CONFIG_FILE = 'src/tabbar/config.uts';
 
 /**
  * 根据页面参数生成传给包裹组件的 props 属性字符串。
@@ -133,11 +136,13 @@ export function uniRootX(options: UniRootXOptions = {}): Plugin {
   // pages.json 页面参数缓存（key: 相对项目根目录的无扩展名页面路径，如 "src/pages/index/index"）
   let cachedPagesParams: Map<string, Record<string, any>> | null = null;
   let lastPagesJsonMTime = 0;
+  let lastTabbarConfigMTime = 0;
 
   /** 模式 4 下由 TabViews 直接 import 的页面（这些页面只作为宿主内组件渲染，不再套全局根骨架） */
   let cachedEmbeddedTabPages: Set<string> | null = null;
   let lastTabViewsMTime = 0;
   let tabbarMode = '1';
+  let hasPureCustomTabbar = false;
 
   // 解析 pages.json：主包 + 分包页面，提取除 path/layout 外的全部自定义参数
   function loadPagesParams() {
@@ -147,7 +152,10 @@ export function uniRootX(options: UniRootXOptions = {}): Plugin {
     }
     try {
       const data = loadPlatformPagesJson(pagesJsonPath);
-      const tabList = (data.tabBar && Array.isArray(data.tabBar.list)) ? data.tabBar.list : [];
+      // 模式 3 没有原生 tabBar 节点，直接从配置识别 Tab 页以支持首帧渲染。
+      const tabList = hasPureCustomTabbar
+        ? readTabbarPageEntries(projectRoot, TABBAR_CONFIG_FILE)
+        : (Array.isArray(data.tabBar?.list) ? data.tabBar.list : []);
       const tabPaths = new Set(tabList.map((item: any) => (item.pagePath || '').replace(/\\/g, '/').replace(/^\//, '')));
 
       const collect = (page: any) => {
@@ -201,9 +209,13 @@ export function uniRootX(options: UniRootXOptions = {}): Plugin {
       return new Map<string, Record<string, any>>();
     }
     const stat = fs.statSync(pagesJsonPath);
-    if (!cachedPagesParams || stat.mtimeMs !== lastPagesJsonMTime) {
+    const tabbarConfigMTime = hasPureCustomTabbar
+      ? (fs.statSync(path.resolve(projectRoot, TABBAR_CONFIG_FILE), { throwIfNoEntry: false })?.mtimeMs ?? 0)
+      : 0;
+    if (!cachedPagesParams || stat.mtimeMs !== lastPagesJsonMTime || tabbarConfigMTime !== lastTabbarConfigMTime) {
       cachedPagesParams = loadPagesParams();
       lastPagesJsonMTime = stat.mtimeMs;
+      lastTabbarConfigMTime = tabbarConfigMTime;
     }
     return cachedPagesParams;
   }
@@ -242,6 +254,7 @@ export function uniRootX(options: UniRootXOptions = {}): Plugin {
       projectRoot = config.root || process.cwd();
       pagesJsonPath = path.resolve(projectRoot, 'pages.json');
       tabbarMode = getTabbarMode(projectRoot);
+      hasPureCustomTabbar = tabbarMode === '3' || tabbarMode === 'CUSTOM_TABBAR_WITHOUT_NATIVE';
     },
     transform(code: string, id: string) {
       const normalizedId = id.replace(/\\/g, '/');
@@ -339,6 +352,9 @@ export function uniRootX(options: UniRootXOptions = {}): Plugin {
       const rootAttrs = buildPageAttrs(filteredParams);
       if (typeof (this as any).addWatchFile === 'function') {
         (this as any).addWatchFile(pagesJsonPath);
+        if (hasPureCustomTabbar) {
+          (this as any).addWatchFile(path.resolve(projectRoot, TABBAR_CONFIG_FILE));
+        }
       }
 
       let newCode = code;

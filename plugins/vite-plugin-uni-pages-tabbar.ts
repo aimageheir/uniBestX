@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { PAGES_JSON_UTS } from '@dcloudio/uni-cli-shared';
+import { parse, stringify } from 'comment-json';
 
 /**
  * uni-pages TabBar 策略插件（卫星）。
@@ -294,8 +296,10 @@ function appendOptionalTabBarFields(tabBar: Record<string, any>, parsedConfig: P
 function runTabBar(state: PagesBuildState): void {
   const output = state.output;
   const projectRoot = state.root;
+  const tabbarMode = getTabbarMode(projectRoot);
+  const hasPureCustomTabbar = tabbarMode === '3' || tabbarMode === 'CUSTOM_TABBAR_WITHOUT_NATIVE';
 
-  if (state.flags.sandboxActive) {
+  if (state.flags.sandboxActive && !hasPureCustomTabbar) {
     // 沙盒模式：只保留当前沙盒编译中真实存在的 TabBar 页面项
     const sandboxMainPages = output.pages;
     const parsedConfig = parseCustomTabbarConfig(projectRoot);
@@ -312,7 +316,6 @@ function runTabBar(state: PagesBuildState): void {
     // 若沙盒中同时调试了 >= 2 个 Tab 页面，自动生成合法的 tabBar 节点供原生切换
     // 若仅调试 1 个 Tab 页面，移除系统级 tabBar 节点避免报路由缺失错误
     if (validSandboxTabList.length >= 2) {
-      const tabbarMode = getTabbarMode(projectRoot);
       const isCustom = tabbarMode !== '1' && tabbarMode !== 'NATIVE_TABBAR';
       output.tabBar = {
         ...(isCustom ? { custom: true, customize: true } : {}),
@@ -330,7 +333,6 @@ function runTabBar(state: PagesBuildState): void {
     return;
   }
 
-  const tabbarMode = getTabbarMode(projectRoot);
   if (tabbarMode === '0' || tabbarMode === 'NO_TABBAR') {
     delete output.tabBar;
   }
@@ -359,7 +361,7 @@ function runTabBar(state: PagesBuildState): void {
         output.tabBar.glassEffect = parsedConfig.glassEffect;
     }
   }
-  else if (tabbarMode === '2' || tabbarMode === 'CUSTOM_TABBAR_WITH_NATIVE' || tabbarMode === 'CUSTOM_TABBAR') {
+  else if (isCustomTabbarWithNative(tabbarMode)) {
     // 模式2（带原生配置的自定义 TabBar）：生成包含 custom: true 与 customize: true 的 pages.json tabBar 配置，通过 switchTab 跳转
     const parsedConfig = parseCustomTabbarConfig(projectRoot);
     if (output.tabBar == null) {
@@ -386,7 +388,7 @@ function runTabBar(state: PagesBuildState): void {
         output.tabBar.glassEffect = parsedConfig.glassEffect;
     }
   }
-  else if (tabbarMode === '3' || tabbarMode === 'CUSTOM_TABBAR_WITHOUT_NATIVE' || tabbarMode === '4' || tabbarMode === 'SINGLE_PAGE_TABBAR') {
+  else if (hasPureCustomTabbar || tabbarMode === '4' || tabbarMode === 'SINGLE_PAGE_TABBAR') {
     // 模式3（纯自定义 TabBar，无原生配置）与 模式4（单页面 TabBar 容器模式）：完全删除 pages.json 中的 tabBar
     delete output.tabBar;
 
@@ -435,9 +437,31 @@ const stage: PagesStage = {
   }
 };
 
+function isCustomTabbarWithNative(mode: string): boolean {
+  return mode === '2' || mode === 'CUSTOM_TABBAR_WITH_NATIVE' || mode === 'CUSTOM_TABBAR';
+}
+
 export default function uniPagesTabbarPlugin() {
   return {
     name: 'uni-pages:tabbar',
-    uniPagesStage: stage
+    uniPagesStage: stage,
+    transform: {
+      order: 'pre' as const,
+      handler(code: string, id: string): string | null {
+        if (process.env.UNI_UTS_PLATFORM !== 'app-android'
+          || process.env.UNI_APP_X_DOM2 === 'true'
+          || path.basename(id) !== PAGES_JSON_UTS
+          || !isCustomTabbarWithNative(getTabbarMode(path.dirname(id)))) {
+          return null;
+        }
+        const pages = parse(code) as { tabBar?: { height?: string } };
+        if (pages.tabBar == null) {
+          return null;
+        }
+        // 原生栏早于页面组件渲染。构建产物只将栏高归零，保留 switchTab 所需的路由表。
+        pages.tabBar.height = '0px';
+        return stringify(pages, null, 2);
+      }
+    }
   };
 }
