@@ -229,14 +229,26 @@ function setHideNavbar(hide: boolean): void {
 
 const currentInstance = getCurrentInstance();
 const appRootExposed: AppRootContext = {
-  doUpdateHeight,
+  doUpdateHeight: (overrideHideNavbar?: boolean | null, overrideHideStatusBar?: boolean | null): void => {
+    doUpdateHeight(overrideHideNavbar ?? null, overrideHideStatusBar ?? null);
+  },
   setHideStatusBar,
   setHideNavbar,
   showTabbar,
   themeStyle,
   themeStore,
   isCurrentPageTabbar,
-  pageProps: (props ?? {}) as UTSJSONObject
+  pageProps: {
+    showBack: props.showBack,
+    hideNavbar: props.hideNavbar,
+    hideStatusBar: props.hideStatusBar,
+    layout: props.layout,
+    enablePullDownRefresh: props.enablePullDownRefresh,
+    customPageClass: props.customPageClass,
+    customPageStyle: props.customPageStyle,
+    pageStyle: props.pageStyle,
+    isTabbar: props.isTabbar
+  }
 };
 
 // 卸载时严格移除全局事件监听，彻底消除 IndexKt.emitter 持有页面导致的 Activity 内存泄漏
@@ -253,7 +265,16 @@ onUnmounted(() => {
 setGlobalAppRootContext(appRootExposed);
 provide(APP_ROOT_INSTANCE_KEY, currentInstance?.proxy ?? currentInstance);
 provide(APP_ROOT_CONTEXT_KEY, appRootExposed);
-defineExpose(appRootExposed);
+defineExpose({
+  doUpdateHeight: appRootExposed.doUpdateHeight,
+  setHideStatusBar,
+  setHideNavbar,
+  showTabbar,
+  themeStyle,
+  themeStore,
+  isCurrentPageTabbar,
+  pageProps: appRootExposed.pageProps
+});
 </script>
 
 <template>

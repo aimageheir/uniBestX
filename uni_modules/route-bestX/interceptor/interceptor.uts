@@ -124,10 +124,10 @@ function buildGuardTargetKey(target: string, api: string): string {
   }
   const parts: Array<string> = [];
   // 每一段都先编码，避免 query 值里的 `|` / `=` 伪造出与多参数路由相同的去重键
-  parts.push(encodeURIComponent(normalizeGuardDedupeApi(api)));
-  parts.push(encodeURIComponent(cleanPath(urlObj.path)));
+  parts.push(encodeURIComponent(normalizeGuardDedupeApi(api)) ?? '');
+  parts.push(encodeURIComponent(cleanPath(urlObj.path)) ?? '');
   targetQuery.forEach((value: string, key: string): void => {
-    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+    parts.push(`${encodeURIComponent(key) ?? ''}=${encodeURIComponent(value) ?? ''}`);
   });
   return parts.join('|');
 }
@@ -1062,10 +1062,22 @@ export const navigateBackInterceptor: Interceptor = {
           delta = d;
         }
         if (opt.fail != null) {
-          optFail = opt.fail;
+          const rawFail = opt.fail!;
+          optFail = (err: any): void => {
+            try {
+              rawFail(err as NavigateBackFail);
+            }
+            catch { }
+          };
         }
         if (opt.complete != null) {
-          optComplete = opt.complete;
+          const rawComplete = opt.complete!;
+          optComplete = (res: any): void => {
+            try {
+              rawComplete(res as AsyncApiResult);
+            }
+            catch { }
+          };
         }
       }
       catch { }
@@ -1143,7 +1155,7 @@ export const navigateBackInterceptor: Interceptor = {
           markNavigateBackInterceptorVerdict(cachedVerdict.allowed);
           if (!cachedVerdict.allowed) {
             const err = createRouterError(
-              ROUTER_ERROR_CODE.GUARD_REJECTED as number,
+              ROUTER_ERROR_CODE.GUARD_CANCELLED as number,
               buildRouteTargetFromResolvedUrl(url, 'navigateBack'),
               resolveFromRouteTarget(),
               'navigateBack'
@@ -1162,7 +1174,7 @@ export const navigateBackInterceptor: Interceptor = {
         markNavigateBackInterceptorVerdict(allowed);
         if (!allowed) {
           const err = createRouterError(
-            ROUTER_ERROR_CODE.GUARD_REJECTED as number,
+            ROUTER_ERROR_CODE.GUARD_CANCELLED as number,
             buildRouteTargetFromResolvedUrl(url, 'navigateBack'),
             resolveFromRouteTarget(),
             'navigateBack'

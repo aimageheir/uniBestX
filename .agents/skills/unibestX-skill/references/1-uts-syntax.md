@@ -8,7 +8,7 @@
 >
 > **30 秒速记**：`type` 不用 `interface`；空值只用 `null`；条件写显式布尔；基础类型比较用 `==`；`number` / `Array` 显式标注；函数签名全标注；可空用 `?.` 与 `??`；异步用双参 `.then`，不写 `.catch`；`as` 后面不写泛型别名。
 >
-> 📌 **1.1–1.29 是逐条铁律**（每条含错误码、底层原理、强制规范、正反例）；**1.30 起是手册部分**：类型怎么声明与导入（1.30）→ 类型系统能表达什么（1.31）→ 完整可编译示例（1.32）→ 多种场景写法（1.33）→ 坑点清单（1.34）→ 报错索引（1.35）→ 速查表（1.36）→ 自检红线（1.37）。**上手先读 1.32，报错先查 1.35，排查先翻 1.34。**
+> 📌 **1.1–1.30 是逐条铁律**（每条含错误码、底层原理、强制规范、正反例）；**1.31 起是手册部分**：类型怎么声明与导入（1.31）→ 类型系统能表达什么（1.32）→ 完整可编译示例（1.33）→ 多种场景写法（1.34）→ 坑点清单（1.35）→ 报错索引（1.36）→ 速查表（1.37）→ 自检红线（1.38）。**上手先读 1.33，报错先查 1.36，排查先翻 1.35。**
 
 ## 1.1 一律禁止使用 `interface`，全面统一使用 `type`
 
@@ -1076,10 +1076,43 @@ class UserStore extends PiniaStoreBase {
 
 ---
 
+## 1.30 属性方法严禁内联声明泛型形参（`UTS110111161`）
 
-## 1.30 类型怎么声明、从哪导入
+- **错误码**：`UTS110111161: Property methods for type, class, or interface do not support defining generic information.`
+- **底层原理**：UTS 中 `type`（对象契约）、`class` 或 `interface` 内定义的函数属性，直接映射为底层面向对象语言的对象属性字段（Property）。在底层编译时，属性字段的类型是一个固定的函数引用类型（Function Type），无法像独立函数那样在属性签名内部声明独立的新泛型类型形参（如 `<T>`）。
+- **强制规范**：
+  1. 属性方法签名必须使用具体类型或 `any`（如 `(promise: Promise<any>, messages: ...) => Promise<any>`），严禁在属性参数括号前声明 `<T>`；
+  2. 若整个对象都需要泛型参数，将泛型提升至外层类型声明（如 `type Handler<T> = { run: (data: T) => T }`）；
+  3. 若方法必须具备独立泛型参数，应将其提取为独立的顶层具名泛型函数导出（如 `export function toastPromise<T>(...)`）。
 
-### 1.30.1 类型声明：只写 `type`，只放文件顶层
+```uts
+// ❌ 错误：触发 UTS110111161 编译失败
+export type UseToastReturn = {
+  promise: <T>(promise: Promise<T>, messages: ToastPromiseMessages) => Promise<T>;
+};
+
+// ✅ 正确做法一：属性方法使用具体类型或 any
+export type UseToastReturn = {
+  promise: (promise: Promise<any>, messages: ToastPromiseMessages) => Promise<any>;
+};
+
+// ✅ 正确做法二：泛型提升到外层 type 声明
+export type PromiseHandler<T> = {
+  promise: (promise: Promise<T>, messages: ToastPromiseMessages) => Promise<T>;
+};
+
+// ✅ 正确做法三：提取为顶层具名泛型函数
+export function toastPromise<T>(
+  promise: Promise<T>,
+  messages: ToastPromiseMessages
+): Promise<T> { ... }
+```
+
+---
+
+## 1.31 类型怎么声明、从哪导入
+
+### 1.31.1 类型声明：只写 `type`，只放文件顶层
 
 ```uts
 // ✅ 顶层：对象结构 / 联合 / 函数类型，一律 type
@@ -1113,7 +1146,7 @@ export type PageResult<T> = {
 | 泛型容器 | `type PageResult<T> = {...}` | 泛型别名用在 `as` 后（1.25） |
 | 类型位置 | 文件顶层 | 函数 / 代码块内部（1.7，`UTS100006`） |
 
-### 1.30.2 类型从哪导入：四种来源
+### 1.31.2 类型从哪导入：四种来源
 
 | 来源 | 导入写法 | 说明 |
 | :--- | :--- | :--- |
@@ -1673,6 +1706,7 @@ class SystemUtils { getWindowHeight(): number { ... } }
 | `UTSJSONObject` 点属性取不到值 | 1.27 |
 | `PiniaStoreBase` 重写方法校验失败 | 1.28 |
 | 同行多语句未加分号 / 需要显式断言 | 1.29 |
+| `UTS110111161` 属性方法不支持定义泛型 | 1.30 |
 | 页面模板收到 `UTSJSONObject` 后崩 / 渲染不出 | 1.34⑥ + 分册 6.2 |
 
 ---
@@ -1726,3 +1760,4 @@ class SystemUtils { getWindowHeight(): number { ... } }
 - [ ] **14. 局部声明顺序正确** —— 先声明后使用；回调里不引用承载它自身的变量；局部函数不当值传递
 - [ ] **15. `UTSJSONObject` 下标取值** —— 不点属性；`Class` 实例反过来只点操作符；**`UTSJSONObject` 不出 api 层**
 - [ ] **16. 定时器句柄必须双层强转** —— 变量显式 `number` 标注时，`setTimeout` / `setInterval` 赋值必须就地双层强转 `(setTimeout(...) as any) as number` / `(setInterval(...) as any) as number`，消除 VSCode TS2322 / TS2352（详见 1.26）
+- [ ] **17. 属性方法严禁内联定义泛型** —— `type` / `class` 属性方法严禁写 `fn: <T>(...) => ...`（规避 `UTS110111161`，提升至外层或用 `any`，详见 1.30）

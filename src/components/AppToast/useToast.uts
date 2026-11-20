@@ -11,29 +11,53 @@ import {
 } from './toastService.uts';
 import type { ToastPromiseMessages, ToastState, ToastType } from './types.uts';
 
-/**
- * useToast Hook 返回值契约
- */
-export type UseToastReturn = {
+export type UseToastReturn = ToastActions;
+
+/** 实例方法让 Android 原生调用可以省略带默认值的参数。 */
+class ToastActions {
   /** 当前 Toast 响应式状态 */
-  state: ToastState;
+  state: ToastState = toastState;
+
   /** 通用弹出方法（支持纯文本或完整 ToastOptions） */
-  show: (optionsOrTitle: any, defaultType?: ToastType) => void;
+  show(optionsOrTitle: any, defaultType: ToastType = 'text'): void {
+    showToast(optionsOrTitle, defaultType);
+  }
+
   /** 成功提示 */
-  success: (title: string, duration?: number) => void;
+  success(title: string, duration: number = 2000): void {
+    toastSuccess(title, duration);
+  }
+
   /** 错误失败提示 */
-  error: (title: string, duration?: number) => void;
+  error(title: string, duration: number = 2000): void {
+    toastError(title, duration);
+  }
+
   /** 警告提示 */
-  warning: (title: string, duration?: number) => void;
+  warning(title: string, duration: number = 2000): void {
+    toastWarning(title, duration);
+  }
+
   /** 信息提示 */
-  info: (title: string, duration?: number) => void;
+  info(title: string, duration: number = 2000): void {
+    toastInfo(title, duration);
+  }
+
   /** 加载等待提示 */
-  loading: (title?: string, mask?: boolean) => void;
+  loading(title: string = '加载中...', mask: boolean = true): void {
+    toastLoading(title, mask);
+  }
+
   /** 承接 Promise 异步操作，在原地平滑切换为 success/error 状态（Ding 原地突变） */
-  promise: <T>(promise: Promise<T>, messages: ToastPromiseMessages) => Promise<T>;
+  promise<T>(promise: Promise<T>, messages: ToastPromiseMessages): Promise<T> {
+    return toastPromise<T>(promise, messages);
+  }
+
   /** 关闭隐藏提示（传 true 时立即销毁，不走离场动画） */
-  hide: (immediate?: boolean) => void;
-};
+  hide(immediate: boolean = false): void {
+    hideToast(immediate);
+  }
+}
 
 /**
  * AppToast 组合式 Hook
@@ -45,29 +69,5 @@ export type UseToastReturn = {
  * ```
  */
 export function useToast(): UseToastReturn {
-  return {
-    state: toastState,
-    show: (optionsOrTitle: any, defaultType: ToastType = 'text'): void => {
-      showToast(optionsOrTitle, defaultType);
-    },
-    success: (title: string, duration: number = 2000): void => {
-      toastSuccess(title, duration);
-    },
-    error: (title: string, duration: number = 2000): void => {
-      toastError(title, duration);
-    },
-    warning: (title: string, duration: number = 2000): void => {
-      toastWarning(title, duration);
-    },
-    info: (title: string, duration: number = 2000): void => {
-      toastInfo(title, duration);
-    },
-    loading: (title: string = '加载中...', mask: boolean = true): void => {
-      toastLoading(title, mask);
-    },
-    promise: toastPromise,
-    hide: (immediate: boolean = false): void => {
-      hideToast(immediate);
-    }
-  };
+  return new ToastActions();
 }

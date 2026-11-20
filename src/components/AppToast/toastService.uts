@@ -127,13 +127,14 @@ export function toastPromise<T>(
 
   toastLoading(loadingText, true);
 
-  return promise
-    .then((result: T): T => {
+  return promise.then(
+    (result: T): T => {
       toastSuccess(successText);
       return result;
-    })
-    .catch((err: any): Promise<T> => {
+    },
+    (err: any): Promise<T> => {
       toastError(errorText);
-      return Promise.reject(err);
-    });
+      return Promise.reject(err) as Promise<T>;
+    }
+  );
 }
