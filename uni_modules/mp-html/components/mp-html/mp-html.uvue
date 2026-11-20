@@ -904,6 +904,29 @@ function flattenInline(node: HtmlNode, inheritedClass: string, inheritedColor: s
   }
 }
 
+function applyBlockTextIndent(node: HtmlNode): void {
+  const attrs = node.attrs
+  if (attrs == null) return
+  const style = attrs.getString('style')
+  if (style == null) return
+  if (style.toLowerCase().indexOf('text-indent') == -1) return
+
+  const children = node.children ?? []
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]
+    if (child.type == 'text') {
+      const rawText = child.text ?? ''
+      if (rawText.length > 0 && !rawText.startsWith('\u3000') && !rawText.startsWith('　')) {
+        child.text = '\u3000\u3000' + rawText
+      }
+      break
+    } else if ((child.children ?? []).length > 0) {
+      applyBlockTextIndent(child)
+      break
+    }
+  }
+}
+
 function cleanEmptyTextNodes(nodes: HtmlNode[]): HtmlNode[] {
   const result: HtmlNode[] = []
   for (let i = 0; i < nodes.length; i++) {
@@ -1201,29 +1224,6 @@ function extractBlockAlign(attrs: UTSJSONObject): void {
         attrs['_align'] = val
       }
       return
-    }
-  }
-}
-
-function applyBlockTextIndent(node: HtmlNode): void {
-  const attrs = node.attrs
-  if (attrs == null) return
-  const style = attrs.getString('style')
-  if (style == null) return
-  if (style.toLowerCase().indexOf('text-indent') == -1) return
-
-  const children = node.children ?? []
-  for (let i = 0; i < children.length; i++) {
-    const child = children[i]
-    if (child.type == 'text') {
-      const rawText = child.text ?? ''
-      if (rawText.length > 0 && !rawText.startsWith('\u3000') && !rawText.startsWith('　')) {
-        child.text = '\u3000\u3000' + rawText
-      }
-      break
-    } else if ((child.children ?? []).length > 0) {
-      applyBlockTextIndent(child)
-      break
     }
   }
 }

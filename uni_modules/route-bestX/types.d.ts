@@ -18,6 +18,16 @@ declare global {
     errCode: number;
   };
 
+  /** uni-app X App 原生端 NavigateBack 失败回调类型契约 */
+  type NavigateBackFail = {
+    errMsg: string;
+  };
+
+  /** uni-app X 异步 API 完成回调基础类型契约 */
+  type AsyncApiResult = {
+    errMsg: string;
+  };
+
   type NavigateToOptions = {
     url: string;
     animationType?:

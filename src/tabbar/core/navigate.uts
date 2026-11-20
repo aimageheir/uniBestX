@@ -161,12 +161,25 @@ function performSwitchTabbar(url: string, api: string = 'switchTabbar'): void {
   if (isSinglePageTabbar) {
     const hostPage = getTabbarHostPage();
     let isAtHost = false;
-    let pages: any[] = [];
+    let hostDelta = -1;
     try {
-      pages = getCurrentPages();
+      const pages = getCurrentPages();
       if (pages.length > 0) {
-        const currentRoute = pages[pages.length - 1].route as string;
+        const currentRoute = pages[pages.length - 1].route;
         isAtHost = isSamePath(currentRoute, hostPage);
+        if (!isAtHost) {
+          let hostIndex = -1;
+          for (let i = 0; i < pages.length; i++) {
+            const r = pages[i].route as string;
+            if (isSamePath(r, hostPage)) {
+              hostIndex = i;
+              break;
+            }
+          }
+          if (hostIndex >= 0) {
+            hostDelta = pages.length - 1 - hostIndex;
+          }
+        }
       }
       else {
         isAtHost = true;
@@ -207,20 +220,10 @@ function performSwitchTabbar(url: string, api: string = 'switchTabbar'): void {
       }
     };
 
-    let hostIndex = -1;
-    for (let i = 0; i < pages.length; i++) {
-      const r = pages[i].route as string;
-      if (isSamePath(r, hostPage)) {
-        hostIndex = i;
-        break;
-      }
-    }
-
-    if (hostIndex >= 0) {
-      const delta = pages.length - 1 - hostIndex;
+    if (hostDelta > 0) {
       markSilentNavigateBack(1);
       uni.navigateBack({
-        delta,
+        delta: hostDelta,
         success: () => {
           applyState();
         },
