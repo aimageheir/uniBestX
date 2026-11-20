@@ -1,0 +1,1 @@
+import{bC as s,b3 as a,bD as b,bE as n,bF as t,bG as o,bH as r,bI as u,bJ as c,bK as l,ak as e,h as i,bL as p,bM as f}from"./index-B6tsEX9o.js";function h(){s();const h=a();""==h||b(h,n.path)||t();const m=o(n);r(()=>{t(),u(m,n)}),c(()=>{l(m)}),null!=e()&&i(()=>{p(m)});const x=f(m);return null!=x?x:n}export{h as u};
