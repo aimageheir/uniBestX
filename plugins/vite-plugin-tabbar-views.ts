@@ -96,7 +96,7 @@ function readTabbarPageEntry(block: string): TabbarPageEntry | null {
 }
 
 /** 读取 config.uts 中 list 与 midButton 的页面项 */
-function readTabbarPageEntries(projectRoot: string, configFile: string): TabbarPageEntry[] {
+export function readTabbarPageEntries(projectRoot: string, configFile: string): TabbarPageEntry[] {
   const configPath = path.resolve(projectRoot, configFile);
   if (!fs.existsSync(configPath)) {
     return [];

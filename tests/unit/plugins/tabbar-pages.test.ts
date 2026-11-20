@@ -121,3 +121,26 @@ describe('mode 4 tabbar pages', () => {
     expect(paths).toContain('src/pages/me/me');
   });
 });
+
+it('keeps mode 3 free of native tabBar in a sandbox with multiple tabs', () => {
+  const originalMode = process.env.VITE_TABBAR_MODE;
+  process.env.VITE_TABBAR_MODE = '3';
+  try {
+    const state = createTabbarState([
+      { path: 'src/pages/index/index' },
+      { path: 'src/pages/basic/basic' }
+    ]);
+    state.flags.sandboxActive = true;
+    Object.assign(state.output, { tabBar: { list: [{ pagePath: 'src/pages/index/index' }] } });
+    uniPagesTabbarPlugin().uniPagesStage.run(state, { root: state.root, isProduction: true });
+    expect(state.output).not.toHaveProperty('tabBar');
+  }
+  finally {
+    if (originalMode == null) {
+      delete process.env.VITE_TABBAR_MODE;
+    }
+    else {
+      process.env.VITE_TABBAR_MODE = originalMode;
+    }
+  }
+});
