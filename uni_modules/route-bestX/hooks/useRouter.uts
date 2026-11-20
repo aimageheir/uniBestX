@@ -198,7 +198,7 @@ export class Router {
       return;
     }
     if (deltaOrOptions != null && typeof deltaOrOptions == 'object') {
-      uni.navigateBack(deltaOrOptions as any);
+      uni.navigateBack(deltaOrOptions as NavigateBackOptions);
       return;
     }
     uni.navigateBack({ delta: 1 });

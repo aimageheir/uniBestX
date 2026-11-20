@@ -43,7 +43,7 @@ function onShowDingPromise(): void {
     }, 1300);
   });
 
-  toast.promise<boolean>(fakeApi, {
+  toast.promise(fakeApi, {
     loading: '正在异步提交中...',
     success: 'Ding! 原地变形保存成功'
   });
